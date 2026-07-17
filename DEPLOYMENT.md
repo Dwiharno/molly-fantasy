@@ -1,4 +1,61 @@
-# Deployment gratis: Render + Neon
+# Deployment gratis: Replit + Neon
+
+Target utama saat ini adalah Replit Autoscale dengan Neon PostgreSQL sebagai
+penyimpanan permanen. Konfigurasi Render tetap tersedia sebagai alternatif.
+
+## Deployment melalui Replit
+
+1. Masuk ke <https://replit.com> dan pilih **Create App > Import from GitHub**.
+2. Impor repository `Dwiharno/molly-fantasy` dari branch `main`.
+3. Replit membaca `.replit` dan `replit.nix`, kemudian menyediakan PHP,
+   Composer, Node.js, serta ekstensi PostgreSQL.
+4. Buka **Secrets** dan tambahkan seluruh variable pada bagian berikut.
+5. Klik **Run** dan pastikan Preview dapat membuka aplikasi.
+6. Buka **Publishing**, pilih **Autoscale**, salin secrets ke Deployment
+   Secrets, kemudian Publish.
+
+### Secrets Replit
+
+```dotenv
+APP_NAME=Molly Fantasy
+APP_ENV=production
+APP_DEBUG=false
+APP_TIMEZONE=Asia/Jakarta
+APP_LOCALE=id
+APP_URL=https://alamat-app.replit.app
+APP_KEY=base64:hasil_dari_php_artisan_key_generate_show
+DATABASE_URL=pooled_connection_string_neon
+DB_CONNECTION=pgsql
+DB_SSLMODE=require
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+CACHE_STORE=database
+QUEUE_CONNECTION=sync
+FILESYSTEM_DISK=local
+RUN_SEEDER=true
+ADMIN_EMAIL=email_admin
+ADMIN_PASSWORD=password_admin_yang_kuat
+GOOGLE_SHEETS_SYNC_ENABLED=false
+LOG_CHANNEL=stderr
+LOG_LEVEL=warning
+```
+
+Untuk membuat `APP_KEY`, jalankan `php artisan key:generate --show` di terminal
+lokal dan simpan hasil lengkap yang diawali `base64:` sebagai Secret.
+
+Build command dan Run command sudah berasal dari `.replit`:
+
+```text
+Build: bash replit/build.sh
+Run:   bash replit/run.sh
+```
+
+Preview menggunakan port 8000 dan deployment memetakan port tersebut ke port
+publik 80.
+
+---
+
+## Alternatif: Render + Neon
 
 Konfigurasi ini mempertahankan MySQL untuk pengembangan lokal dan menggunakan
 PostgreSQL saat online. Paket gratis cocok untuk uji coba operasional, bukan

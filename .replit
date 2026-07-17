@@ -1,0 +1,16 @@
+run = ["bash", "replit/run.sh"]
+entrypoint = "artisan"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+build = ["bash", "replit/build.sh"]
+run = ["bash", "replit/run.sh"]
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", "replit/build.sh", "replit/run.sh"]
