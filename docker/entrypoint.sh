@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 set -eu
 
+if [ -z "${APP_KEY:-}" ] && [ -n "${APP_KEY_SECRET:-}" ]; then
+    export APP_KEY="base64:${APP_KEY_SECRET}"
+fi
+
+if [ -z "${APP_KEY:-}" ]; then
+    echo "APP_KEY atau APP_KEY_SECRET wajib tersedia." >&2
+    exit 1
+fi
+
 mkdir -p storage/app/private storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 
 if [ -n "${GOOGLE_SHEETS_CREDENTIALS_BASE64:-}" ]; then

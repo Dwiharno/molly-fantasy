@@ -37,8 +37,8 @@ services:
         value: local
       - key: RUN_SEEDER
         value: "true"
-      - key: APP_KEY
-        sync: false
+      - key: APP_KEY_SECRET
+        generateValue: true
       - key: APP_URL
         sync: false
       - key: DATABASE_URL

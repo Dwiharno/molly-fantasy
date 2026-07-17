@@ -14,15 +14,8 @@ untuk layanan produksi dengan jaminan uptime.
 
 ## 2. Siapkan secret aplikasi
 
-Jalankan di komputer lokal:
-
-```bash
-php artisan key:generate --show
-```
-
-Simpan hasil `base64:...` sebagai `APP_KEY` di Render.
-
-Tentukan juga:
+`APP_KEY_SECRET` dibuat otomatis oleh Render dan startup script mengubahnya ke
+format encryption key Laravel. Tentukan juga:
 
 - `ADMIN_EMAIL`: email login Super Admin pertama.
 - `ADMIN_PASSWORD`: password acak minimal 12 karakter.
@@ -48,7 +41,6 @@ File yang dibutuhkan Render sudah tersedia:
 2. Pilih **New > Blueprint** dan hubungkan repository GitHub.
 3. Render membaca `render.yaml`.
 4. Isi secret yang diminta:
-   - `APP_KEY`
    - `APP_URL` (boleh URL sementara, perbarui setelah service dibuat)
    - `DATABASE_URL`
    - `ADMIN_EMAIL`
