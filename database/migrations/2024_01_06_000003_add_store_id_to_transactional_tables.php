@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('stock_opnames', function (Blueprint $table) {
+            $table->foreignId('store_id')->nullable()->after('id')->constrained()->nullOnDelete();
+        });
+
+        Schema::table('redeem_transactions', function (Blueprint $table) {
+            $table->foreignId('store_id')->nullable()->after('id')->constrained()->nullOnDelete();
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreignId('store_id')->nullable()->after('role')->constrained()->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('store_id');
+        });
+
+        Schema::table('redeem_transactions', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('store_id');
+        });
+
+        Schema::table('stock_opnames', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('store_id');
+        });
+    }
+};
