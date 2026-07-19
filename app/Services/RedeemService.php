@@ -15,7 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class RedeemService
 {
-    public const AVAILABLE_POS = [1, 2, 3];
+    public const AVAILABLE_POS = [1, 2, 3, 4];
+    public const MEMBER_POS = 4;
 
     public function __construct(
         protected TicketBarcodeService $ticketParser,
@@ -37,6 +38,7 @@ class RedeemService
             'total_used' => (int) Session::get($this->key($pos, 'total_used'), 0),
             'cart' => $this->currentCartDetails($pos),
             'scanned_tickets' => $this->listScannedTickets($pos),
+            'member_phone' => Session::get($this->key($pos, 'member_phone'), ''),
         ];
     }
 
@@ -62,6 +64,7 @@ class RedeemService
      */
     public function scanTicket(int $pos, string $barcode): array
     {
+        $this->rejectMemberTicketScan($pos);
         $parsed = $this->ticketParser->parse($barcode);
 
         if ($parsed['value'] < 1 || $parsed['value'] > 99999) {
@@ -436,6 +439,7 @@ class RedeemService
                 $this->key($pos, 'total_used'),
                 $this->key($pos, 'transaction_id'),
                 $this->key($pos, 'scanned_ticket_ids'),
+                $this->key($pos, 'member_phone'),
             ]);
 
             return [
@@ -452,6 +456,7 @@ class RedeemService
      */
     public function addManualTicket(int $pos, int $value): array
     {
+        $this->rejectMemberTicketScan($pos);
         if ($value <= 0) {
             throw ValidationException::withMessages([
                 'value' => 'Nilai tiket manual harus lebih dari 0.',
@@ -503,7 +508,9 @@ class RedeemService
         if ($transaction) {
             $ids = Session::get($this->key($pos, 'scanned_ticket_ids'), []);
             $scans = RedeemTicketScan::whereIn('id', $ids)->get();
-            $totalTicketScanned = $scans->sum(fn ($scan) => (int) $scan->ticket_code_5digit);
+            $totalTicketScanned = $pos === self::MEMBER_POS
+                ? (int) Session::get($this->key($pos, 'total_scanned_value'), 0)
+                : $scans->sum(fn ($scan) => (int) $scan->ticket_code_5digit);
 
             $this->syncTransactionTotals($transaction);
             $transaction->update([
@@ -518,6 +525,7 @@ class RedeemService
             $this->key($pos, 'total_used'),
             $this->key($pos, 'transaction_id'),
             $this->key($pos, 'scanned_ticket_ids'),
+            $this->key($pos, 'member_phone'),
         ]);
 
         return $transaction;
@@ -536,6 +544,8 @@ class RedeemService
 
         $transaction = RedeemTransaction::create([
             'transaction_code' => $this->generateTransactionCode(),
+            'redeem_type' => $pos === self::MEMBER_POS ? 'member' : 'pos',
+            'member_phone' => $pos === self::MEMBER_POS ? Session::get($this->key($pos, 'member_phone')) : null,
             'user_id' => Auth::id(),
             'total_ticket_scanned' => (int) Session::get($this->key($pos, 'total_scanned_value'), 0),
             'total_ticket_used' => 0,
@@ -600,5 +610,116 @@ class RedeemService
     protected function key(int $pos, string $suffix): string
     {
         return "redeem.pos.{$pos}.{$suffix}";
+    }
+
+    public function setMemberBalance(string $phone, int $totalTickets): array
+    {
+        $phone = preg_replace('/[^0-9+]/', '', trim($phone));
+
+        if (! preg_match('/^(?:\+62|62|0)8[0-9]{7,12}$/', $phone)) {
+            throw ValidationException::withMessages(['phone' => 'Nomor handphone member tidak valid.']);
+        }
+
+        if ($totalTickets < 1) {
+            throw ValidationException::withMessages(['total_tickets' => 'Total tiket harus lebih dari 0.']);
+        }
+
+        $used = (int) Session::get($this->key(self::MEMBER_POS, 'total_used'), 0);
+        if ($totalTickets < $used) {
+            throw ValidationException::withMessages(['total_tickets' => 'Total tiket tidak boleh lebih kecil dari tiket yang sudah terpakai.']);
+        }
+
+        Session::put($this->key(self::MEMBER_POS, 'member_phone'), $phone);
+        Session::put($this->key(self::MEMBER_POS, 'total_scanned_value'), $totalTickets);
+        Session::put($this->key(self::MEMBER_POS, 'pool'), $totalTickets - $used);
+
+        $transactionId = Session::get($this->key(self::MEMBER_POS, 'transaction_id'));
+        if ($transactionId) {
+            RedeemTransaction::whereKey($transactionId)->update([
+                'redeem_type' => 'member',
+                'member_phone' => $phone,
+                'total_ticket_scanned' => $totalTickets,
+            ]);
+        }
+
+        return ['member_phone' => $phone, 'total_scanned_value' => $totalTickets, 'total_used' => $used, 'pool' => $totalTickets - $used];
+    }
+
+    protected function rejectMemberTicketScan(int $pos): void
+    {
+        if ($pos === self::MEMBER_POS) {
+            throw ValidationException::withMessages(['ticket' => 'Redeem Member tidak menggunakan scan tiket.']);
+        }
+    }
+
+    public function syncOfflineTransaction(array $payload): RedeemTransaction
+    {
+        $existing = RedeemTransaction::where('offline_reference', $payload['reference'])->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $isMember = $payload['redeem_type'] === 'member';
+        $phone = $isMember ? preg_replace('/[^0-9+]/', '', (string) ($payload['member_phone'] ?? '')) : null;
+        if ($isMember && ! preg_match('/^(?:\+62|62|0)8[0-9]{7,12}$/', $phone)) {
+            throw ValidationException::withMessages(['member_phone' => 'Nomor handphone member tidak valid.']);
+        }
+
+        return DB::transaction(function () use ($payload, $isMember, $phone) {
+            $items = collect($payload['items'])->map(function ($line) {
+                $item = $this->itemRepository->findByBarcode($line['barcode']);
+                if (! $item) {
+                    throw ValidationException::withMessages(['items' => "Barcode {$line['barcode']} tidak ditemukan."]);
+                }
+                $qty = (int) $line['qty'];
+                if ($qty < 1 || $item->stock < $qty) {
+                    throw ValidationException::withMessages(['items' => "Stok {$item->name} tidak mencukupi."]);
+                }
+                return compact('item', 'qty');
+            });
+
+            $ticketUsed = $items->sum(fn ($line) => (int) $line['item']->ticket_redeem_qty * $line['qty']);
+            $totalTickets = (int) $payload['total_tickets'];
+            if ($ticketUsed > $totalTickets) {
+                throw ValidationException::withMessages(['total_tickets' => 'Total tiket offline tidak mencukupi.']);
+            }
+
+            $transaction = RedeemTransaction::create([
+                'transaction_code' => $this->generateTransactionCode(),
+                'redeem_type' => $isMember ? 'member' : 'pos',
+                'member_phone' => $phone,
+                'offline_reference' => $payload['reference'],
+                'user_id' => Auth::id(),
+                'total_ticket_scanned' => $totalTickets,
+                'total_ticket_used' => $ticketUsed,
+                'total_value' => 0,
+                'redeemed_at' => $payload['created_at'] ?? now(),
+            ]);
+
+            foreach ($items as $line) {
+                $item = $line['item'];
+                $qty = $line['qty'];
+                $before = $item->stock;
+                $this->itemRepository->decrementStock($item, $qty, [
+                    'type' => 'redeem',
+                    'reference_type' => RedeemTransaction::class,
+                    'reference_id' => $transaction->id,
+                    'notes' => "Sinkronisasi redeem offline {$transaction->transaction_code}",
+                ]);
+                $item->refresh();
+                $transaction->details()->create([
+                    'item_id' => $item->id,
+                    'item_barcode' => $item->barcode,
+                    'item_name' => $item->name,
+                    'qty' => $qty,
+                    'ticket_used' => (int) $item->ticket_redeem_qty * $qty,
+                    'stock_before' => $before,
+                    'stock_after' => $item->stock,
+                ]);
+            }
+
+            $this->syncTransactionTotals($transaction);
+            return $transaction->fresh();
+        });
     }
 }

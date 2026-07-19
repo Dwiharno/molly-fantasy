@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class RedeemTransaction extends Model
 {
     protected $fillable = [
-        'transaction_code', 'user_id', 'total_ticket_scanned',
+        'transaction_code', 'redeem_type', 'member_phone', 'offline_reference', 'user_id', 'total_ticket_scanned',
         'total_ticket_used', 'total_value', 'redeemed_at',
     ];
 

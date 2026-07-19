@@ -31,9 +31,37 @@ class RedeemController extends Controller implements HasMiddleware
             ->mapWithKeys(fn ($pos) => [$pos => $this->redeemService->getState($pos)]);
 
         return view('redeem.index', [
-            'posList' => RedeemService::AVAILABLE_POS,
+            'posList' => [1, 2, 3],
             'posStates' => $posStates,
+            'memberState' => $this->redeemService->getState(RedeemService::MEMBER_POS),
         ]);
+    }
+
+    public function offline(): View
+    {
+        return view('redeem.offline');
+    }
+
+    public function syncOffline(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'reference' => ['required', 'uuid'],
+            'redeem_type' => ['required', 'in:pos,member'],
+            'member_phone' => ['nullable', 'string', 'max:25'],
+            'total_tickets' => ['required', 'integer', 'min:1'],
+            'created_at' => ['nullable', 'date'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.barcode' => ['required', 'string'],
+            'items.*.qty' => ['required', 'integer', 'min:1'],
+        ]);
+
+        try {
+            $transaction = $this->redeemService->syncOfflineTransaction($payload);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        return response()->json(['message' => 'Transaksi offline berhasil disinkronkan.', 'transaction_code' => $transaction->transaction_code]);
     }
 
     protected function resolvePos(Request $request): int
@@ -94,6 +122,22 @@ class RedeemController extends Controller implements HasMiddleware
         $result['ticket'] = $this->formatTicketForResponse($result['scan_id']);
 
         return response()->json($result);
+    }
+
+    public function setMemberBalance(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => ['required', 'string', 'max:25'],
+            'total_tickets' => ['required', 'integer', 'min:1'],
+        ]);
+
+        try {
+            $result = $this->redeemService->setMemberBalance($validated['phone'], (int) $validated['total_tickets']);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        return response()->json(array_merge(['message' => 'Data member dan total tiket berhasil disimpan.'], $result));
     }
 
     protected function formatTicketForResponse(int $scanId): ?array

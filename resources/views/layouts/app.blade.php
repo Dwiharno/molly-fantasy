@@ -107,6 +107,11 @@
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <script src="{{ asset('vendor/chart.js/chart.umd.min.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('{{ asset('sw.js') }}'));
+        }
+    </script>
     @stack('scripts')
 </body>
 </html>

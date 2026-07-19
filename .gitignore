@@ -24,3 +24,5 @@ npm-debug.log
 yarn-error.log
 /storage/app/google/service-account.json
 /bootstrap/cache/*.php
+/deployment/output/
+/storage/framework/views/*.php

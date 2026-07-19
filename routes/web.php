@@ -168,10 +168,13 @@ Route::middleware(['auth', 'role:super_admin,admin,staff,viewer'])->group(functi
     */
     Route::prefix('redeem')->name('redeem.')->group(function () {
         Route::get('/', [RedeemController::class, 'index'])->name('index');
+        Route::get('/offline', [RedeemController::class, 'offline'])->name('offline');
+        Route::post('/offline-sync', [RedeemController::class, 'syncOffline'])->name('offline-sync');
         Route::post('/scan-ticket', [RedeemController::class, 'scanTicket'])->name('scan-ticket');
         Route::delete('/ticket/{scanId}', [RedeemController::class, 'deleteTicket'])->name('delete-ticket');
         Route::post('/reset-tickets', [RedeemController::class, 'resetTickets'])->name('reset-tickets');
         Route::post('/manual-ticket', [RedeemController::class, 'addManualTicket'])->name('manual-ticket');
+        Route::post('/member-balance', [RedeemController::class, 'setMemberBalance'])->name('member-balance');
         Route::post('/scan-item', [RedeemController::class, 'scanItem'])->name('scan-item');
         Route::post('/update-qty', [RedeemController::class, 'updateQty'])->name('update-qty');
         Route::post('/remove-item', [RedeemController::class, 'removeItem'])->name('remove-item');

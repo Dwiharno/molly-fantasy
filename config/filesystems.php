@@ -12,14 +12,14 @@ return [
         ],
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            'root' => base_path(env('PUBLIC_STORAGE_PATH', 'storage/app/public')),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
         ],
         'items' => [
             'driver' => 'local',
-            'root' => storage_path('app/public/items'),
+            'root' => base_path(env('PUBLIC_STORAGE_PATH', 'storage/app/public').'/items'),
             'url' => env('APP_URL').'/storage/items',
             'visibility' => 'public',
             'throw' => false,

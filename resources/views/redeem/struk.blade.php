@@ -33,6 +33,10 @@
         <tr><td>No. Transaksi</td><td class="text-end">{{ $transaction->transaction_code }}</td></tr>
         <tr><td>Tanggal</td><td class="text-end">{{ $transaction->redeemed_at->format('d/m/Y H:i') }}</td></tr>
         <tr><td>Kasir</td><td class="text-end">{{ $transaction->user->name }}</td></tr>
+        @if($transaction->redeem_type === 'member')
+            <tr><td>Jenis</td><td class="text-end">Member</td></tr>
+            <tr><td>No. Handphone</td><td class="text-end">{{ $transaction->member_phone }}</td></tr>
+        @endif
     </table>
     <hr>
     <table>
@@ -53,7 +57,7 @@
     <hr>
     <table>
         <tr><td>Total Item</td><td class="text-end">{{ $transaction->details->count() }}</td></tr>
-        <tr><td>Total Tiket Discan</td><td class="text-end">{{ $transaction->total_ticket_scanned }}</td></tr>
+        <tr><td>{{ $transaction->redeem_type === 'member' ? 'Total Tiket Member' : 'Total Tiket Discan' }}</td><td class="text-end">{{ $transaction->total_ticket_scanned }}</td></tr>
         <tr><td class="bold">Total Tiket Terpakai</td><td class="text-end bold">{{ $transaction->total_ticket_used }}</td></tr>
         <tr><td>Sisa Tiket</td><td class="text-end">{{ max(0, $transaction->total_ticket_scanned - $transaction->total_ticket_used) }}</td></tr>
     </table>

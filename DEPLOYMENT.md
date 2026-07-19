@@ -1,5 +1,23 @@
 # Deployment gratis: Replit + Neon
 
+## Deployment otomatis InfinityFree melalui GitHub Actions
+
+Workflow `.github/workflows/deploy-infinityfree.yml` menjalankan test, membangun paket production, lalu mengunggahnya ke `/htdocs/` setiap kali branch `main` menerima push.
+
+Tambahkan repository secrets melalui GitHub → **Settings → Secrets and variables → Actions → New repository secret**:
+
+- `FTP_SERVER`: `ftpupload.net`
+- `FTP_USERNAME`: username akun InfinityFree
+- `FTP_PASSWORD`: password akun InfinityFree
+- `DB_PASSWORD`: password MySQL/hosting InfinityFree
+- `APP_KEY`: nilai `APP_KEY` production yang sekarang dipakai website
+
+Jangan menulis nilai rahasia tersebut di workflow, commit, issue, atau chat.
+
+Migration database tidak dapat dijalankan dari GitHub runner karena MySQL InfinityFree hanya menerima koneksi dari lingkungan hosting. Untuk rilis Member + Offline, impor satu kali file `deployment/infinityfree/migrations/2026_07_19_member_offline_redeem.sql` melalui phpMyAdmin InfinityFree.
+
+Setelah secrets dan migration siap, workflow dapat dijalankan dari tab **Actions → Deploy InfinityFree → Run workflow**, atau otomatis melalui push ke `main`.
+
 Target utama saat ini adalah Replit Autoscale dengan Neon PostgreSQL sebagai
 penyimpanan permanen. Konfigurasi Render tetap tersedia sebagai alternatif.
 

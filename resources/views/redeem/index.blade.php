@@ -8,6 +8,7 @@
     <a href="{{ route('redeem.history') }}" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-clock-rotate-left me-1"></i> Riwayat Redeem
     </a>
+    <a href="{{ route('redeem.offline') }}" class="btn btn-outline-warning btn-sm ms-2"><i class="fa-solid fa-cloud-arrow-up me-1"></i> Mode Offline</a>
 </div>
 
 <div class="row g-3">
@@ -20,6 +21,11 @@
                     </button>
                 </li>
             @endforeach
+            <li class="nav-item">
+                <button class="nav-link" data-pos="4">
+                    <i class="fa-solid fa-user-tag me-1"></i> Member
+                </button>
+            </li>
         </ul>
 
         @foreach($posList as $pos)
@@ -150,6 +156,64 @@
                 </div>
             </div>
         @endforeach
+
+        <div class="pos-panel" data-pos-panel="4" style="display:none">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="stat-card"><div class="stat-icon bg-primary-subtle text-primary"><i class="fa-solid fa-id-card"></i></div><div><div class="stat-value member-phone-display">{{ $memberState['member_phone'] ?: '-' }}</div><div class="stat-label">Nomor Handphone</div></div></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="stat-icon bg-warning-subtle text-warning"><i class="fa-solid fa-ticket"></i></div><div><div class="stat-value stat-total-used">{{ number_format($memberState['total_used']) }}</div><div class="stat-label">Tiket Terpakai</div></div></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="stat-icon bg-success-subtle text-success"><i class="fa-solid fa-coins"></i></div><div><div class="stat-value stat-pool">{{ number_format($memberState['pool']) }}</div><div class="stat-label">Sisa Tiket Member</div></div></div></div>
+                <div class="stat-total-scanned d-none">{{ $memberState['total_scanned_value'] }}</div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>1. Data Member</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-reset-tickets"><i class="fa-solid fa-eraser me-1"></i> Reset</button>
+                        </div>
+                        <div class="card-body">
+                            <label class="form-label">Nomor Handphone</label>
+                            <input type="tel" class="form-control member-phone-input mb-3" value="{{ $memberState['member_phone'] }}" placeholder="Contoh: 081234567890">
+                            <label class="form-label">Total Tiket</label>
+                            <div class="input-group">
+                                <input type="number" min="1" class="form-control member-ticket-input" value="{{ $memberState['total_scanned_value'] ?: '' }}" placeholder="Masukkan total tiket member">
+                                <button type="button" class="btn btn-primary btn-set-member-balance">Gunakan Tiket</button>
+                            </div>
+                            <div class="form-text">Redeem Member tidak memerlukan scan tiket. Nomor HP tersimpan pada transaksi untuk audit.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">2. Scan Hadiah Member</div>
+                        <div class="card-body">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text"><i class="fa-solid fa-gift"></i></span>
+                                <input type="text" class="form-control item-input" placeholder="Scan barcode hadiah...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Keranjang Redeem — Member</span>
+                            <button type="button" class="btn btn-sm btn-primary btn-finish"><i class="fa-solid fa-print me-1"></i> Selesai &amp; Cetak Struk</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table mb-0"><thead><tr><th>Hadiah</th><th class="text-center">Qty</th><th class="text-center">Tiket</th><th class="text-center">Aksi</th></tr></thead>
+                                <tbody class="cart-body">
+                                @forelse($memberState['cart'] as $detail)
+                                    <tr data-barcode="{{ $detail->item_barcode }}"><td>{{ $detail->item_name }}</td><td class="text-center"><input type="number" min="1" value="{{ $detail->qty }}" class="form-control form-control-sm qty-input text-center" data-barcode="{{ $detail->item_barcode }}" style="width:80px;margin:0 auto"></td><td class="text-center">{{ $detail->ticket_used }}</td><td class="text-center"><div class="d-flex gap-1 justify-content-center"><button type="button" class="btn btn-sm btn-outline-primary btn-update-qty" data-barcode="{{ $detail->item_barcode }}">Update</button><button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-barcode="{{ $detail->item_barcode }}">Hapus</button></div></td></tr>
+                                @empty
+                                    <tr class="cart-empty-row"><td colspan="4" class="text-center text-muted py-4">Belum ada hadiah diredeem.</td></tr>
+                                @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-3">
@@ -188,6 +252,27 @@ $(function () {
         if (res.total_used !== undefined) panel.find('.stat-total-used').text(Number(res.total_used).toLocaleString('id-ID'));
         if (res.pool !== undefined) panel.find('.stat-pool').text(Number(res.pool).toLocaleString('id-ID'));
     }
+
+    $(document).on('click', '.btn-set-member-balance', function () {
+        const panel = panelFor(this);
+        const phone = panel.find('.member-phone-input').val().trim();
+        const totalTickets = Number(panel.find('.member-ticket-input').val());
+
+        $.ajax({
+            url: '{{ route('redeem.member-balance') }}',
+            method: 'POST',
+            data: { phone: phone, total_tickets: totalTickets },
+            success: function (res) {
+                updateStats(panel, res);
+                panel.find('.member-phone-display').text(res.member_phone);
+                mfToast('success', res.message);
+                panel.find('.item-input').focus();
+            },
+            error: function (xhr) {
+                mfToast('error', xhr.responseJSON?.message || 'Data member tidak dapat disimpan.');
+            }
+        });
+    });
 
     function ticketRowHtml(ticket) {
         const manualBadge = ticket.is_manual ? '<span class="badge text-bg-secondary">Manual</span>' : '';

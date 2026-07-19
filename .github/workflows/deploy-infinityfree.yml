@@ -1,0 +1,105 @@
+name: Deploy InfinityFree
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: infinityfree-production
+  cancel-in-progress: false
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, gd, intl, mbstring, pdo_mysql, zip
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build browser assets
+        run: npm ci
+
+      - name: Run tests
+        run: php artisan test
+
+      - name: Build InfinityFree layout
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p deploy/htdocs/_app deploy/htdocs/storage
+          cp -R app bootstrap config database resources routes storage vendor deploy/htdocs/_app/
+          cp artisan composer.json composer.lock deploy/htdocs/_app/
+          cp -R public/. deploy/htdocs/
+          rm -f deploy/htdocs/index.php
+          rm -rf deploy/htdocs/storage
+          mkdir -p deploy/htdocs/storage
+          cp deployment/infinityfree/index.php deploy/htdocs/index.php
+          printf '%s\n' \
+            'APP_NAME="Molly Fantasy Indonesia"' \
+            'APP_ENV=production' \
+            "APP_KEY=${APP_KEY}" \
+            'APP_DEBUG=false' \
+            'APP_URL=https://molly-fantasy.ifree.page' \
+            'APP_TIMEZONE=Asia/Jakarta' \
+            'APP_LOCALE=id' \
+            'LOG_CHANNEL=single' \
+            'LOG_LEVEL=error' \
+            'DB_CONNECTION=mysql' \
+            'DB_HOST=sql101.infinityfree.com' \
+            'DB_PORT=3306' \
+            'DB_DATABASE=if0_42432412_mollyfantasy' \
+            'DB_USERNAME=if0_42432412' \
+            "DB_PASSWORD=${DB_PASSWORD}" \
+            'SESSION_DRIVER=database' \
+            'SESSION_SECURE_COOKIE=true' \
+            'CACHE_STORE=database' \
+            'QUEUE_CONNECTION=sync' \
+            'FILESYSTEM_DISK=public' \
+            'PUBLIC_STORAGE_PATH=../storage' \
+            'GOOGLE_SHEETS_SYNC_ENABLED=false' \
+            > deploy/htdocs/_app/.env
+          printf '%s\n' 'Require all denied' > deploy/htdocs/_app/.htaccess
+          printf '%s\n' 'Options -Indexes' > deploy/htdocs/storage/.htaccess
+          find deploy/htdocs/_app/storage -type d -exec chmod 775 {} +
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./deploy/htdocs/
+          server-dir: /htdocs/
+          log-level: minimal
+          timeout: 120000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            _app/storage/logs/**
+            _app/storage/framework/cache/data/**
+            _app/storage/framework/sessions/**
+            _app/storage/framework/views/**
+            storage/**
