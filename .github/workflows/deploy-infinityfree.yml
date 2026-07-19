@@ -37,6 +37,11 @@ jobs:
       - name: Build browser assets
         run: npm ci
 
+      - name: Prepare test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
       - name: Run tests
         run: php artisan test
 
