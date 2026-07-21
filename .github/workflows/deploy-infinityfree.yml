@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test-build-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -109,6 +109,8 @@ jobs:
           mirror --reverse --only-newer --verbose --parallel=2 \
             --exclude-glob '.git*' \
             --exclude-glob 'node_modules/' \
+            --exclude-glob '_app/vendor/' \
+            --exclude-glob '_app/vendor/**' \
             --exclude-glob '_app/storage/logs/' \
             --exclude-glob '_app/storage/framework/cache/data/' \
             --exclude-glob '_app/storage/framework/sessions/' \

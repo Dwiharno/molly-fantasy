@@ -4,6 +4,8 @@
 
 Workflow `.github/workflows/deploy-infinityfree.yml` menjalankan test, membangun paket production, lalu mengunggahnya ke `/htdocs/` setiap kali branch `main` menerima push.
 
+Folder `_app/vendor` tidak diunggah ulang oleh workflow karena sudah tersedia di hosting dan jumlah filenya melewati batas waktu FTP gratis. Jika `composer.json` atau `composer.lock` berubah, buat ulang paket deployment lalu unggah folder `htdocs/_app/vendor` melalui FileZilla sebelum menjalankan workflow.
+
 Tambahkan repository secrets melalui GitHub → **Settings → Secrets and variables → Actions → New repository secret**:
 
 - `FTP_SERVER`: `ftpupload.net`
