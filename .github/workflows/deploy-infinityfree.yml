@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p deploy/htdocs/_app deploy/htdocs/storage
-          cp -R app bootstrap config database resources routes storage vendor deploy/htdocs/_app/
+          cp -R app bootstrap config database resources routes storage deploy/htdocs/_app/
           cp artisan composer.json composer.lock deploy/htdocs/_app/
           cp -R public/. deploy/htdocs/
           rm -f deploy/htdocs/index.php
