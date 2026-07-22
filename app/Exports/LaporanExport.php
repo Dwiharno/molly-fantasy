@@ -24,7 +24,7 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function collection(): Collection
     {
         return match ($this->type) {
-            'redeem' => $this->applyRedeemFilters(RedeemTransactionDetail::with(['redeemTransaction.user']))->latest()->get(),
+            'redeem' => $this->applyRedeemFilters(RedeemTransactionDetail::with(['redeemTransaction.user', 'item']))->latest()->get(),
             'stock' => $this->applyStockFilters(Item::query())->get(),
             'barang_masuk' => $this->movementQuery(['in'])->get(),
             'barang_keluar' => $this->movementQuery(['out', 'redeem'])->get(),
@@ -62,7 +62,7 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     {
         $query = DB::table('item_stock_movements')
             ->join('items', 'items.id', '=', 'item_stock_movements.item_id')
-            ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name')
+            ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name', 'items.selling_price as unit_price')
             ->whereIn('item_stock_movements.type', $types);
 
         if (! empty($this->filters['date_from'])) {
@@ -78,11 +78,11 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function headings(): array
     {
         return match ($this->type) {
-            'redeem' => ['Tanggal', 'No. Transaksi', 'Kasir', 'Barcode', 'Nama Barang', 'Qty', 'Tiket'],
-            'stock' => ['Barcode', 'Nama Item', 'Kategori', 'Stok', 'Min. Stok', 'Status'],
-            'barang_masuk', 'barang_keluar' => ['Tanggal', 'Barcode', 'Nama Item', 'Qty', 'Catatan'],
+            'redeem' => ['Tanggal', 'No. Transaksi', 'Kasir', 'Barcode', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total Value', 'Tiket'],
+            'stock' => ['Barcode', 'Nama Item', 'Kategori', 'Stok', 'Harga Satuan', 'Total Value', 'Min. Stok', 'Status'],
+            'barang_masuk', 'barang_keluar' => ['Tanggal', 'Barcode', 'Nama Item', 'Qty', 'Harga Satuan', 'Total Value', 'Catatan'],
             'user' => ['Nama', 'Email', 'Role', 'Status', 'Login Terakhir'],
-            'selisih_stock' => ['Kode Opname', 'Tanggal', 'Barcode', 'Nama Item', 'Expected', 'Actual', 'Selisih'],
+            'selisih_stock' => ['Kode Opname', 'Tanggal', 'Barcode', 'Nama Item', 'Expected', 'Actual', 'Selisih', 'Harga Satuan', 'Total Value Selisih'],
             default => [],
         };
     }
@@ -97,15 +97,19 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
                 $row->item_barcode,
                 $row->item_name,
                 $row->qty,
+                (float) ($row->item?->selling_price ?? 0),
+                (float) ($row->item?->selling_price ?? 0) * (int) $row->qty,
                 $row->ticket_used,
             ],
             'stock' => [
                 $row->barcode, $row->name, $row->category ?? '-',
-                $row->stock, $row->minimum_stock, $row->is_active ? 'Aktif' : 'Nonaktif',
+                $row->stock, (float) $row->selling_price, (float) $row->selling_price * (int) $row->stock,
+                $row->minimum_stock, $row->is_active ? 'Aktif' : 'Nonaktif',
             ],
             'barang_masuk', 'barang_keluar' => [
                 \Carbon\Carbon::parse($row->created_at)->format('d/m/Y H:i'),
-                $row->item_barcode, $row->item_name, $row->quantity, $row->notes ?? '-',
+                $row->item_barcode, $row->item_name, $row->quantity, (float) $row->unit_price,
+                (float) $row->unit_price * abs((int) $row->quantity), $row->notes ?? '-',
             ],
             'user' => [
                 $row->name, $row->email, User::ROLES[$row->role] ?? $row->role,
@@ -117,6 +121,8 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
                 $row->item->barcode ?? '-',
                 $row->item->name ?? '(item dihapus)',
                 $row->expected_stock, $row->actual_stock, $row->difference,
+                (float) ($row->item?->selling_price ?? 0),
+                (float) ($row->item?->selling_price ?? 0) * (int) $row->difference,
             ],
             default => [],
         };

@@ -39,7 +39,7 @@ class LaporanController extends Controller
 
     protected function redeemData(Request $request): JsonResponse
     {
-        $query = RedeemTransactionDetail::with(['redeemTransaction.user']);
+        $query = RedeemTransactionDetail::with(['redeemTransaction.user', 'item']);
 
         if ($request->filled('date_from')) {
             $query->whereHas('redeemTransaction', fn ($q) => $q->whereDate('redeemed_at', '>=', $request->date_from));
@@ -55,6 +55,8 @@ class LaporanController extends Controller
             ->addIndexColumn()
             ->addColumn('tanggal', fn ($d) => $d->redeemTransaction->redeemed_at->format('d/m/Y H:i'))
             ->addColumn('kasir', fn ($d) => $d->redeemTransaction->user->name ?? '-')
+            ->addColumn('unit_price', fn ($d) => (float) ($d->item?->selling_price ?? 0))
+            ->addColumn('item_value', fn ($d) => (float) ($d->item?->selling_price ?? 0) * (int) $d->qty)
             ->make(true);
     }
 
@@ -68,6 +70,8 @@ class LaporanController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('unit_price', fn (Item $i) => (float) $i->selling_price)
+            ->addColumn('item_value', fn (Item $i) => (float) $i->selling_price * (int) $i->stock)
             ->addColumn('status_label', fn (Item $i) => $i->is_active ? 'Aktif' : 'Nonaktif')
             ->make(true);
     }
@@ -76,7 +80,7 @@ class LaporanController extends Controller
     {
         $query = DB::table('item_stock_movements')
             ->join('items', 'items.id', '=', 'item_stock_movements.item_id')
-            ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name')
+            ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name', 'items.selling_price as unit_price')
             ->whereIn('item_stock_movements.type', $types);
 
         if ($request->filled('date_from')) {
@@ -88,6 +92,7 @@ class LaporanController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
+            ->addColumn('item_value', fn ($m) => (float) $m->unit_price * abs((int) $m->quantity))
             ->editColumn('created_at', fn ($m) => \Carbon\Carbon::parse($m->created_at)->format('d/m/Y H:i'))
             ->make(true);
     }
@@ -123,6 +128,8 @@ class LaporanController extends Controller
             ->addColumn('opname_date', fn ($d) => $d->stockOpname->opname_date?->format('d/m/Y') ?? '-')
             ->addColumn('item_name', fn ($d) => $d->item->name ?? '(item dihapus)')
             ->addColumn('item_barcode', fn ($d) => $d->item->barcode ?? '-')
+            ->addColumn('unit_price', fn ($d) => (float) ($d->item?->selling_price ?? 0))
+            ->addColumn('item_value', fn ($d) => (float) ($d->item?->selling_price ?? 0) * (int) $d->difference)
             ->make(true);
     }
 
@@ -151,13 +158,13 @@ class LaporanController extends Controller
     public function getReportCollectionForExport(string $type, Request $request)
     {
         return match ($type) {
-            'redeem' => RedeemTransactionDetail::with(['redeemTransaction.user'])->latest()->get(),
+            'redeem' => RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])->latest()->get(),
             'stock' => Item::all(),
             'barang_masuk' => DB::table('item_stock_movements')->join('items', 'items.id', '=', 'item_stock_movements.item_id')
-                ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name')
+                ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name', 'items.selling_price as unit_price')
                 ->where('type', 'in')->get(),
             'barang_keluar' => DB::table('item_stock_movements')->join('items', 'items.id', '=', 'item_stock_movements.item_id')
-                ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name')
+                ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name', 'items.selling_price as unit_price')
                 ->whereIn('type', ['out', 'redeem'])->get(),
             'user' => User::all(),
             'selisih_stock' => StockOpnameDetail::with(['item', 'stockOpname'])->where('difference', '!=', 0)->get(),

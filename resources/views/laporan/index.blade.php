@@ -62,6 +62,8 @@
 <script>
 $(function () {
     $('.select2').select2({ theme: 'default', width: '100%' });
+    const rupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+    const moneyColumn = (data, title) => ({ data, title, className: 'text-end', render: value => rupiah(value) });
 
     const columnDefs = {
         redeem: [
@@ -72,6 +74,8 @@ $(function () {
             { data: 'item_barcode', title: 'Barcode' },
             { data: 'item_name', title: 'Nama Barang' },
             { data: 'qty', title: 'Qty', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value'),
             { data: 'ticket_used', title: 'Tiket', className: 'text-center' },
         ],
         stock: [
@@ -80,6 +84,8 @@ $(function () {
             { data: 'name', title: 'Nama Item' },
             { data: 'category', title: 'Kategori' },
             { data: 'stock', title: 'Stok', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value'),
             { data: 'minimum_stock', title: 'Min. Stok', className: 'text-center' },
             { data: 'status_label', title: 'Status', className: 'text-center' },
         ],
@@ -89,6 +95,8 @@ $(function () {
             { data: 'item_barcode', title: 'Barcode' },
             { data: 'item_name', title: 'Nama Item' },
             { data: 'quantity', title: 'Qty', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value'),
             { data: 'notes', title: 'Catatan', defaultContent: '-' },
         ],
         barang_keluar: [
@@ -97,6 +105,8 @@ $(function () {
             { data: 'item_barcode', title: 'Barcode' },
             { data: 'item_name', title: 'Nama Item' },
             { data: 'quantity', title: 'Qty', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value'),
             { data: 'notes', title: 'Catatan', defaultContent: '-' },
         ],
         user: [
@@ -116,6 +126,8 @@ $(function () {
             { data: 'expected_stock', title: 'Expected', className: 'text-center' },
             { data: 'actual_stock', title: 'Actual', className: 'text-center' },
             { data: 'difference', title: 'Selisih', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value Selisih'),
         ],
     };
 
