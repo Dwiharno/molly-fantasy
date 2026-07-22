@@ -13,7 +13,8 @@ class UserPolicy
 
     public function view(User $user, User $target): bool
     {
-        return $user->canManageUsers();
+        return $user->canManageUsers()
+            && ($user->isSuperAdmin() || $user->store_id === $target->store_id);
     }
 
     public function create(User $user): bool
@@ -32,7 +33,7 @@ class UserPolicy
             return false;
         }
 
-        return true;
+        return $user->isSuperAdmin() || $user->store_id === $target->store_id;
     }
 
     public function delete(User $user, User $target): bool
@@ -45,7 +46,8 @@ class UserPolicy
             return false;
         }
 
-        return $user->canManageUsers();
+        return $user->canManageUsers()
+            && ($user->isSuperAdmin() || $user->store_id === $target->store_id);
     }
 
     public function resetPassword(User $user, User $target): bool
@@ -54,6 +56,7 @@ class UserPolicy
             return false;
         }
 
-        return $user->canManageUsers();
+        return $user->canManageUsers()
+            && ($user->isSuperAdmin() || $user->store_id === $target->store_id);
     }
 }

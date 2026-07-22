@@ -25,7 +25,8 @@ class ItemService
     public function create(array $data, ?UploadedFile $image = null): Item
     {
         // Cegah duplicate barcode (validasi tambahan di level Service selain Form Request)
-        if ($this->itemRepository->findByBarcode($data['barcode'])) {
+        $data['store_id'] ??= auth()->user()?->store_id ?? \App\Models\Store::where('code', 'S040')->value('id');
+        if (Item::withTrashed()->where('barcode', $data['barcode'])->where('store_id', $data['store_id'])->exists()) {
             throw ValidationException::withMessages([
                 'barcode' => 'Barcode sudah terdaftar untuk item lain.',
             ]);

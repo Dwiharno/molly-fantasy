@@ -15,7 +15,15 @@ class ItemRepository extends BaseRepository implements ItemRepositoryInterface
 
     public function findByBarcode(string $barcode): ?Item
     {
-        return $this->model->newQuery()->withTrashed()->where('barcode', $barcode)->first();
+        $storeId = Auth::user()?->store_id;
+
+        return $this->model->newQuery()->withTrashed()
+            ->where('barcode', $barcode)
+            ->when($storeId, fn ($query) => $query->where(function ($q) use ($storeId) {
+                $q->where('store_id', $storeId)->orWhereNull('store_id');
+            }))
+            ->orderByRaw('store_id IS NULL')
+            ->first();
     }
 
     public function lowStock()
@@ -30,6 +38,7 @@ class ItemRepository extends BaseRepository implements ItemRepositoryInterface
         $item->refresh();
 
         $item->stockMovements()->create([
+            'store_id' => $item->store_id,
             'type' => $meta['type'] ?? 'out',
             'quantity' => $qty,
             'stock_before' => $before,
@@ -50,6 +59,7 @@ class ItemRepository extends BaseRepository implements ItemRepositoryInterface
         $item->refresh();
 
         $item->stockMovements()->create([
+            'store_id' => $item->store_id,
             'type' => $meta['type'] ?? 'in',
             'quantity' => $qty,
             'stock_before' => $before,

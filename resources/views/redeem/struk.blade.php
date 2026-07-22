@@ -26,7 +26,8 @@
     </style>
 </head>
 <body onload="window.print()">
-    <div class="center bold">{{ \App\Models\Setting::get('outlet_name', config('app.name')) }}</div>
+    <div class="center bold">{{ $transaction->store?->name ?? \App\Models\Setting::get('outlet_name', config('app.name')) }}</div>
+    @if($transaction->store)<div class="center">{{ $transaction->store->code }}</div>@endif
     <div class="center">{{ \App\Models\Setting::get('outlet_address', '') }}</div>
     <hr>
     <table>

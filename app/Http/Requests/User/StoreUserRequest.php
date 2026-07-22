@@ -8,6 +8,13 @@ use Illuminate\Validation\Rules\Password;
 
 class StoreUserRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->user() && ! $this->user()->isSuperAdmin()) {
+            $this->merge(['store_id' => $this->user()->store_id ?? \App\Models\Store::where('code', 'S040')->value('id')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()->can('create', User::class);
@@ -15,10 +22,9 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $allowedRoles = array_keys(User::ROLES);
-
-        if (! $this->user()->isSuperAdmin()) {
-            $allowedRoles = array_diff($allowedRoles, [User::ROLE_SUPER_ADMIN]);
+        $allowedRoles = [User::ROLE_ADMIN, User::ROLE_STAFF];
+        if ($this->user()->isSuperAdmin()) {
+            $allowedRoles[] = User::ROLE_SUPER_ADMIN;
         }
 
         return [
@@ -26,6 +32,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
             'role' => ['required', 'in:'.implode(',', $allowedRoles)],
+            'store_id' => ['required', 'exists:stores,id'],
             'phone' => ['nullable', 'string', 'max:20'],
             'is_active' => ['nullable', 'boolean'],
         ];

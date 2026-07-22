@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->user() && ! $this->user()->isSuperAdmin()) {
+            $this->merge(['store_id' => $this->user()->store_id ?? \App\Models\Store::where('code', 'S040')->value('id')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('user'));
@@ -15,10 +22,9 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $allowedRoles = array_keys(User::ROLES);
-
-        if (! $this->user()->isSuperAdmin()) {
-            $allowedRoles = array_diff($allowedRoles, [User::ROLE_SUPER_ADMIN]);
+        $allowedRoles = [User::ROLE_ADMIN, User::ROLE_STAFF];
+        if ($this->user()->isSuperAdmin()) {
+            $allowedRoles[] = User::ROLE_SUPER_ADMIN;
         }
 
         $target = $this->route('user');
@@ -27,6 +33,7 @@ class UpdateUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($target->id)],
             'role' => ['required', 'in:'.implode(',', $allowedRoles)],
+            'store_id' => ['required', 'exists:stores,id'],
             'phone' => ['nullable', 'string', 'max:20'],
             'is_active' => ['nullable', 'boolean'],
         ];

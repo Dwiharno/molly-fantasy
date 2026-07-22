@@ -9,6 +9,7 @@ use App\Http\Requests\Item\StoreItemRequest;
 use App\Http\Requests\Item\UpdateItemRequest;
 use App\Imports\ItemsImport;
 use App\Models\Item;
+use App\Models\Store;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -44,12 +45,19 @@ class ItemController extends Controller implements HasMiddleware
             'allocations' => Item::ALLOCATIONS,
             'categories' => Item::CATEGORIES,
             'subCategories' => Item::SUB_CATEGORIES,
+            'stores' => $this->availableStores(),
         ]);
     }
 
     public function data(Request $request): JsonResponse
     {
-        $query = Item::query();
+        $query = Item::query()->with('store');
+
+        if (! $request->user()->isSuperAdmin()) {
+            $query->where('store_id', $request->user()->store_id);
+        } elseif ($request->filled('store_id')) {
+            $query->where('store_id', $request->integer('store_id'));
+        }
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
@@ -71,6 +79,7 @@ class ItemController extends Controller implements HasMiddleware
 
                 return "<span class=\"badge {$class}\">{$item->stock}</span>";
             })
+            ->addColumn('store_label', fn (Item $item) => $item->store ? "{$item->store->code} - {$item->store->name}" : '-')
             ->addColumn('status_badge', function (Item $item) {
                 return $item->is_active
                     ? '<span class="badge text-bg-success">Aktif</span>'
@@ -90,6 +99,7 @@ class ItemController extends Controller implements HasMiddleware
             'allocations' => Item::ALLOCATIONS,
             'categories' => Item::CATEGORIES,
             'subCategories' => Item::SUB_CATEGORIES,
+            'stores' => $this->availableStores(),
         ]);
     }
 
@@ -107,6 +117,7 @@ class ItemController extends Controller implements HasMiddleware
             'allocations' => Item::ALLOCATIONS,
             'categories' => Item::CATEGORIES,
             'subCategories' => Item::SUB_CATEGORIES,
+            'stores' => $this->availableStores(),
         ]);
     }
 
@@ -127,7 +138,7 @@ class ItemController extends Controller implements HasMiddleware
     public function exportExcel(Request $request)
     {
         return Excel::download(
-            new ItemsExport($request->get('search'), $request->only(['category', 'allocation'])),
+            new ItemsExport($request->get('search'), $request->only(['category', 'allocation', 'store_id'])),
             'master-item-'.now()->format('Ymd-His').'.xlsx'
         );
     }
@@ -135,7 +146,7 @@ class ItemController extends Controller implements HasMiddleware
     public function exportCsv(Request $request)
     {
         return Excel::download(
-            new ItemsExport($request->get('search'), $request->only(['category', 'allocation'])),
+            new ItemsExport($request->get('search'), $request->only(['category', 'allocation', 'store_id'])),
             'master-item-'.now()->format('Ymd-His').'.csv',
             \Maatwebsite\Excel\Excel::CSV
         );
@@ -196,13 +207,14 @@ class ItemController extends Controller implements HasMiddleware
         }
 
         $data = $request->validate([
-            'barcode' => ['required', 'string', 'max:50', 'unique:items,barcode'],
+            'barcode' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:150'],
             'stock' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $item = $this->itemService->create([
             'barcode' => $data['barcode'],
+            'store_id' => $request->user()->store_id ?? Store::where('code', 'S040')->value('id'),
             'name' => $data['name'],
             'allocation' => Item::ALLOCATIONS[0],
             'category' => Item::CATEGORIES[0],
@@ -215,5 +227,12 @@ class ItemController extends Controller implements HasMiddleware
         ]);
 
         return response()->json(['message' => 'Item baru berhasil ditambahkan. Lengkapi Category/Allocation-nya lewat menu Master Item.', 'item' => $item]);
+    }
+
+    protected function availableStores()
+    {
+        return Store::active()
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereKey(auth()->user()->store_id))
+            ->orderBy('code')->get();
     }
 }

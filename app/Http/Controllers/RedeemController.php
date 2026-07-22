@@ -283,7 +283,8 @@ class RedeemController extends Controller implements HasMiddleware
 
     public function struk(RedeemTransaction $transaction): View
     {
-        $transaction->load(['details', 'user']);
+        abort_unless(request()->user()->isSuperAdmin() || request()->user()->store_id === $transaction->store_id, 403);
+        $transaction->load(['details', 'user', 'store']);
 
         return view('redeem.struk', compact('transaction'));
     }
@@ -296,7 +297,9 @@ class RedeemController extends Controller implements HasMiddleware
     {
         $term = trim((string) $request->get('q', ''));
 
-        $query = Item::query()->active()->select('id', 'barcode', 'name', 'stock');
+        $query = Item::query()->active()
+            ->where('store_id', $request->user()->store_id)
+            ->select('id', 'barcode', 'name', 'stock');
 
         if ($term !== '') {
             $query->where(function ($q) use ($term) {

@@ -17,6 +17,18 @@
             @if($item->exists) @method('PUT') @endif
 
             <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label">Outlet <span class="text-danger">*</span></label>
+                    <select name="store_id" class="form-select select2 @error('store_id') is-invalid @enderror" required>
+                        <option value="">- Pilih Outlet -</option>
+                        @foreach($stores as $store)
+                            <option value="{{ $store->id }}" {{ (string) old('store_id', $item->store_id ?: auth()->user()->store_id) === (string) $store->id ? 'selected' : '' }}>
+                                {{ $store->code }} - {{ $store->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('store_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                </div>
                 <div class="col-md-6">
                     <label class="form-label">Barcode <span class="text-danger">*</span></label>
                     <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror"

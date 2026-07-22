@@ -15,15 +15,17 @@ class DashboardController extends Controller
     public function index(): View
     {
         $today = now()->toDateString();
+        $storeId = auth()->user()->isSuperAdmin() ? null : auth()->user()->store_id;
 
         $stats = [
-            'total_item' => Item::count(),
-            'redeem_today' => RedeemTransaction::whereDate('redeemed_at', $today)->count(),
-            'opname_today' => StockOpname::whereDate('opname_date', $today)->count(),
-            'ticket_redeemed_today' => (int) RedeemTransaction::whereDate('redeemed_at', $today)->sum('total_ticket_used'),
+            'total_item' => Item::when($storeId, fn ($q) => $q->where('store_id', $storeId))->count(),
+            'redeem_today' => RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('redeemed_at', $today)->count(),
+            'opname_today' => StockOpname::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('opname_date', $today)->count(),
+            'ticket_redeemed_today' => (int) RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('redeemed_at', $today)->sum('total_ticket_used'),
         ];
 
         $topHadiah = RedeemTransactionDetail::select('item_id', 'item_name')
+            ->when($storeId, fn ($q) => $q->whereHas('redeemTransaction', fn ($t) => $t->where('store_id', $storeId)))
             ->selectRaw('SUM(qty) as total_qty')
             ->groupBy('item_id', 'item_name')
             ->orderByDesc('total_qty')
@@ -31,18 +33,21 @@ class DashboardController extends Controller
             ->get();
 
         $redeemChart = RedeemTransaction::selectRaw('DATE(redeemed_at) as tanggal, COUNT(*) as total')
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->where('redeemed_at', '>=', now()->subDays(13))
             ->groupBy('tanggal')
             ->orderBy('tanggal')
             ->get();
 
         $opnameChart = StockOpname::selectRaw('DATE(opname_date) as tanggal, COUNT(*) as total')
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->where('opname_date', '>=', now()->subDays(13))
             ->groupBy('tanggal')
             ->orderBy('tanggal')
             ->get();
 
         $barangMasukChart = DB::table('item_stock_movements')
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->selectRaw('DATE(created_at) as tanggal, SUM(quantity) as total')
             ->where('type', 'in')
             ->where('created_at', '>=', now()->subDays(13))
@@ -51,6 +56,7 @@ class DashboardController extends Controller
             ->get();
 
         $barangKeluarChart = DB::table('item_stock_movements')
+            ->when($storeId, fn ($q) => $q->where('store_id', $storeId))
             ->selectRaw('DATE(created_at) as tanggal, SUM(quantity) as total')
             ->whereIn('type', ['out', 'redeem'])
             ->where('created_at', '>=', now()->subDays(13))
@@ -58,7 +64,9 @@ class DashboardController extends Controller
             ->orderBy('tanggal')
             ->get();
 
-        $recentActivities = ActivityLog::with('user')->latest()->limit(15)->get();
+        $recentActivities = ActivityLog::with('user')
+            ->when($storeId, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('store_id', $storeId)))
+            ->latest()->limit(15)->get();
 
         return view('dashboard.index', compact(
             'stats', 'topHadiah', 'redeemChart', 'opnameChart',

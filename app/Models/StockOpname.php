@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StockOpname extends Model
 {
     protected $fillable = [
-        'code', 'opname_date', 'user_id', 'status', 'notes',
+        'store_id', 'code', 'opname_date', 'user_id', 'status', 'notes',
         'berita_acara_path', 'completed_at',
     ];
 
@@ -22,6 +22,11 @@ class StockOpname extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function details()

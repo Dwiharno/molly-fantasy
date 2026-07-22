@@ -15,18 +15,19 @@ class User extends Authenticatable implements CanResetPasswordContract
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_STORE_MANAGER = self::ROLE_ADMIN;
     public const ROLE_STAFF = 'staff';
     public const ROLE_VIEWER = 'viewer';
 
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
-        self::ROLE_ADMIN => 'Admin',
+        self::ROLE_ADMIN => 'Store Manager/Leader',
         self::ROLE_STAFF => 'Staff',
         self::ROLE_VIEWER => 'Viewer',
     ];
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'phone', 'avatar',
+        'name', 'email', 'password', 'role', 'store_id', 'phone', 'avatar',
         'is_active', 'last_login_at', 'last_login_ip',
     ];
 
@@ -75,5 +76,10 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function stockOpnames()
     {
         return $this->hasMany(StockOpname::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 }

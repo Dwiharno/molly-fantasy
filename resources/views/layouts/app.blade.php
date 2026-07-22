@@ -80,6 +80,9 @@
                             <i class="fa-solid fa-user-circle fs-5"></i>
                             <span>{{ auth()->user()?->name }}</span>
                             <span class="badge text-bg-secondary">{{ \App\Models\User::ROLES[auth()->user()?->role] ?? '' }}</span>
+                            @if(auth()->user()?->store)
+                                <span class="badge text-bg-success">{{ auth()->user()->store->code }}</span>
+                            @endif
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>

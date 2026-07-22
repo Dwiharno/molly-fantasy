@@ -24,7 +24,7 @@ class StoreController extends Controller implements HasMiddleware
 
     public static function middleware(): array
     {
-        return [new Middleware('can_write', except: ['index', 'data'])];
+        return [new Middleware('role:super_admin', except: ['index', 'data'])];
     }
 
     public function index(): View

@@ -23,6 +23,7 @@ class StockOpnameService
     public function startSession(?string $notes = null): StockOpname
     {
         $opname = $this->stockOpnameRepository->create([
+            'store_id' => Auth::user()?->store_id ?? \App\Models\Store::where('code', 'S040')->value('id'),
             'code' => $this->stockOpnameRepository->generateCode(),
             'opname_date' => now()->toDateString(),
             'user_id' => Auth::id(),
@@ -166,6 +167,10 @@ class StockOpnameService
 
     protected function ensureEditable(StockOpname $opname): void
     {
+        if (! Auth::user()?->isSuperAdmin() && $opname->store_id !== Auth::user()?->store_id) {
+            abort(403, 'Stock opname ini milik outlet lain.');
+        }
+
         if ($opname->status === 'completed') {
             throw ValidationException::withMessages([
                 'stock_opname' => 'Sesi stock opname ini sudah selesai dan tidak dapat diubah.',

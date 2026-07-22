@@ -4,7 +4,10 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">Redeem Hadiah</h4>
+    <div>
+        <h4 class="mb-0">Redeem Hadiah</h4>
+        <div class="text-muted small">Outlet: <strong>{{ auth()->user()->store?->code }} - {{ auth()->user()->store?->name }}</strong></div>
+    </div>
     <a href="{{ route('redeem.history') }}" class="btn btn-outline-secondary btn-sm">
         <i class="fa-solid fa-clock-rotate-left me-1"></i> Riwayat Redeem
     </a>

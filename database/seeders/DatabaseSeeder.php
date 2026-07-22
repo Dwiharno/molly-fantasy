@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -26,16 +27,28 @@ class DatabaseSeeder extends Seeder
 
         $adminPassword ??= 'ChangeMe123!';
 
-        User::firstOrCreate(
+        $stores = collect([
+            ['code' => 'S040', 'name' => 'Mollyfantasy Aeon Mall Deltamas'],
+            ['code' => 'S044', 'name' => 'MollyFantasy Living World'],
+            ['code' => 'S050', 'name' => 'Mollyfantasy Cihampelas Walk'],
+        ])->mapWithKeys(fn ($data) => [$data['code'] => Store::updateOrCreate(
+            ['code' => $data['code']], $data + ['is_active' => true]
+        )]);
+
+        $admin = User::firstOrCreate(
             ['email' => $adminEmail],
             [
                 'name' => 'Super Administrator',
                 'password' => Hash::make($adminPassword),
                 'role' => 'super_admin',
+                'store_id' => $stores['S040']->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
         );
+        if (! $admin->store_id) {
+            $admin->update(['store_id' => $stores['S040']->id]);
+        }
 
         $defaults = [
             'outlet_name' => 'Molly Fantasy Indonesia',

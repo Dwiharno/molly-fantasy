@@ -543,6 +543,7 @@ class RedeemService
         }
 
         $transaction = RedeemTransaction::create([
+            'store_id' => $this->currentStoreId(),
             'transaction_code' => $this->generateTransactionCode(),
             'redeem_type' => $pos === self::MEMBER_POS ? 'member' : 'pos',
             'member_phone' => $pos === self::MEMBER_POS ? Session::get($this->key($pos, 'member_phone')) : null,
@@ -685,6 +686,7 @@ class RedeemService
             }
 
             $transaction = RedeemTransaction::create([
+                'store_id' => $this->currentStoreId(),
                 'transaction_code' => $this->generateTransactionCode(),
                 'redeem_type' => $isMember ? 'member' : 'pos',
                 'member_phone' => $phone,
@@ -721,5 +723,11 @@ class RedeemService
             $this->syncTransactionTotals($transaction);
             return $transaction->fresh();
         });
+    }
+
+    protected function currentStoreId(): ?int
+    {
+        return Auth::user()?->store_id
+            ?? \App\Models\Store::where('code', 'S040')->value('id');
     }
 }

@@ -22,6 +22,7 @@ class UserService
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'role' => $data['role'],
+                'store_id' => $data['store_id'],
                 'phone' => $data['phone'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
             ]);
@@ -47,6 +48,7 @@ class UserService
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'role' => $data['role'],
+                'store_id' => $data['store_id'],
                 'phone' => $data['phone'] ?? null,
                 'is_active' => $data['is_active'] ?? $user->is_active,
             ]);

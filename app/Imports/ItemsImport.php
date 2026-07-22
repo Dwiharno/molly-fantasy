@@ -35,6 +35,8 @@ class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
      */
     public function collection(Collection $rows): void
     {
+        $storeId = auth()->user()?->store_id ?? \App\Models\Store::where('code', 'S040')->value('id');
+
         foreach ($rows as $index => $row) {
             $barcode = trim((string) ($row['barcode'] ?? ''));
             $nama = trim((string) ($row['nama'] ?? ''));
@@ -60,6 +62,7 @@ class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
 
             try {
                 $item = new Item([
+                    'store_id' => $storeId,
                     'barcode' => $barcode,
                     'name' => $nama,
                     'allocation' => $allocation,

@@ -18,6 +18,8 @@ Jangan menulis nilai rahasia tersebut di workflow, commit, issue, atau chat.
 
 Migration database tidak dapat dijalankan dari GitHub runner karena MySQL InfinityFree hanya menerima koneksi dari lingkungan hosting. Untuk rilis Member + Offline, impor satu kali file `deployment/infinityfree/migrations/2026_07_19_member_offline_redeem.sql` melalui phpMyAdmin InfinityFree.
 
+Untuk rilis Master User/Outlet dan stok per outlet, impor satu kali file `deployment/infinityfree/migrations/2026_07_22_store_scoped_users_and_stock.sql` melalui phpMyAdmin InfinityFree sebelum membuka versi aplikasi terbaru.
+
 Setelah secrets dan migration siap, workflow dapat dijalankan dari tab **Actions → Deploy InfinityFree → Run workflow**, atau otomatis melalui push ke `main`.
 
 Target utama saat ini adalah Replit Autoscale dengan Neon PostgreSQL sebagai

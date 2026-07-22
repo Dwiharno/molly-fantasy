@@ -18,6 +18,7 @@ class RedeemHistoryController extends Controller
     {
         return view('redeem.history', [
             'cashiers' => User::whereIn('role', [User::ROLE_STAFF, User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])
+                ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->where('store_id', auth()->user()->store_id))
                 ->orderBy('name')->get(),
         ]);
     }
@@ -61,6 +62,12 @@ class RedeemHistoryController extends Controller
     {
         $filters = $this->filterParams($request);
 
+        if (! $request->user()->isSuperAdmin()) {
+            $query->whereHas('redeemTransaction', fn ($q) => $q->where('store_id', $request->user()->store_id));
+        } elseif (! empty($filters['store_id'])) {
+            $query->whereHas('redeemTransaction', fn ($q) => $q->where('store_id', $filters['store_id']));
+        }
+
         if (! empty($filters['date_from'])) {
             $query->whereHas('redeemTransaction', fn ($q) => $q->whereDate('redeemed_at', '>=', $filters['date_from']));
         }
@@ -80,6 +87,6 @@ class RedeemHistoryController extends Controller
 
     protected function filterParams(Request $request): array
     {
-        return $request->only(['date_from', 'date_to', 'user_id', 'name', 'barcode']);
+        return $request->only(['date_from', 'date_to', 'user_id', 'store_id', 'name', 'barcode']);
     }
 }

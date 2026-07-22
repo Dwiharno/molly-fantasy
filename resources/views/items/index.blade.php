@@ -32,6 +32,14 @@
 <div class="card">
     <div class="card-body">
         <div class="row g-2 mb-3">
+            @if(auth()->user()->isSuperAdmin())
+            <div class="col-md-3">
+                <select id="filterStore" class="form-select form-select-sm">
+                    <option value="">Semua Outlet</option>
+                    @foreach($stores as $store)<option value="{{ $store->id }}">{{ $store->code }} - {{ $store->name }}</option>@endforeach
+                </select>
+            </div>
+            @endif
             <div class="col-md-3">
                 <select id="filterCategory" class="form-select form-select-sm">
                     <option value="">Semua Category</option>
@@ -70,6 +78,7 @@
                         <th>#</th>
                         <th>Barcode</th>
                         <th>Nama Item</th>
+                        <th>Outlet</th>
                         <th>Allocation</th>
                         <th>Category</th>
                         <th>Sub Category</th>
@@ -95,6 +104,7 @@ $(function () {
     function loadItems() {
         $.get('{{ route('items.data') }}', {
             category: $('#filterCategory').val(),
+            store_id: $('#filterStore').val(),
             allocation: $('#filterAllocation').val(),
             status: $('#filterStatus').val(),
             low_stock: $('#filterLowStock').is(':checked') ? 1 : ''
@@ -102,7 +112,7 @@ $(function () {
             body.empty();
 
             if (!res.data.length) {
-                body.append('<tr><td colspan="11" class="text-center text-muted py-4">Belum ada item yang sesuai filter.</td></tr>');
+                body.append('<tr><td colspan="12" class="text-center text-muted py-4">Belum ada item yang sesuai filter.</td></tr>');
                 return;
             }
 
@@ -112,6 +122,7 @@ $(function () {
                     '<td>' + item.DT_RowIndex + '</td>' +
                     '<td>' + (item.barcode || '-') + '</td>' +
                     '<td>' + (item.name || '-') + '</td>' +
+                    '<td>' + (item.store_label || '-') + '</td>' +
                     '<td>' + (item.allocation || '-') + '</td>' +
                     '<td>' + (item.category || '-') + '</td>' +
                     '<td>' + (item.sub_category || '-') + '</td>' +
@@ -126,7 +137,7 @@ $(function () {
         });
     }
 
-    $('#filterCategory, #filterAllocation, #filterStatus, #filterLowStock').on('change', loadItems);
+    $('#filterStore, #filterCategory, #filterAllocation, #filterStatus, #filterLowStock').on('change', loadItems);
 
     $(document).on('click', '.btn-delete-item', function () {
         const id = $(this).data('id');

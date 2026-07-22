@@ -6,6 +6,7 @@ use App\Http\Requests\User\ResetUserPasswordRequest;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
+use App\Models\Store;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -40,16 +41,18 @@ class UserController extends Controller implements HasMiddleware
 
     public function data(): JsonResponse
     {
-        $query = User::query();
+        $query = User::query()->with('store');
 
         // Admin biasa tidak melihat akun Super Admin di listing untuk menjaga hierarki akses.
         if (! auth()->user()->isSuperAdmin()) {
-            $query->where('role', '!=', User::ROLE_SUPER_ADMIN);
+            $query->where('role', '!=', User::ROLE_SUPER_ADMIN)
+                ->where('store_id', auth()->user()->store_id);
         }
 
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('role_label', fn (User $u) => User::ROLES[$u->role] ?? $u->role)
+            ->addColumn('store_label', fn (User $u) => $u->store ? "{$u->store->code} - {$u->store->name}" : '-')
             ->addColumn('status_badge', fn (User $u) => $u->is_active
                 ? '<span class="badge text-bg-success">Aktif</span>'
                 : '<span class="badge text-bg-secondary">Nonaktif</span>')
@@ -66,6 +69,7 @@ class UserController extends Controller implements HasMiddleware
         return view('users.form', [
             'user' => new User(),
             'roles' => $this->availableRoles(),
+            'stores' => $this->availableStores(),
         ]);
     }
 
@@ -81,6 +85,7 @@ class UserController extends Controller implements HasMiddleware
         return view('users.form', [
             'user' => $user,
             'roles' => $this->availableRoles(),
+            'stores' => $this->availableStores(),
         ]);
     }
 
@@ -119,12 +124,19 @@ class UserController extends Controller implements HasMiddleware
 
     protected function availableRoles(): array
     {
-        $roles = User::ROLES;
-
-        if (! auth()->user()->isSuperAdmin()) {
-            unset($roles[User::ROLE_SUPER_ADMIN]);
+        $allowed = [User::ROLE_ADMIN, User::ROLE_STAFF];
+        if (auth()->user()->isSuperAdmin()) {
+            array_unshift($allowed, User::ROLE_SUPER_ADMIN);
         }
+        $roles = array_intersect_key(User::ROLES, array_flip($allowed));
 
         return $roles;
+    }
+
+    protected function availableStores()
+    {
+        return Store::active()
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereKey(auth()->user()->store_id))
+            ->orderBy('code')->get();
     }
 }

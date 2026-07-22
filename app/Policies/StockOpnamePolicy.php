@@ -14,7 +14,7 @@ class StockOpnamePolicy
 
     public function view(User $user, StockOpname $opname): bool
     {
-        return true;
+        return $user->isSuperAdmin() || $user->store_id === $opname->store_id;
     }
 
     public function create(User $user): bool
@@ -24,11 +24,13 @@ class StockOpnamePolicy
 
     public function update(User $user, StockOpname $opname): bool
     {
-        return $user->canWrite() && $opname->status !== 'completed';
+        return $user->canWrite() && $opname->status !== 'completed'
+            && ($user->isSuperAdmin() || $user->store_id === $opname->store_id);
     }
 
     public function delete(User $user, StockOpname $opname): bool
     {
-        return $user->hasRole([User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN]) && $opname->status !== 'completed';
+        return $user->hasRole([User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN]) && $opname->status !== 'completed'
+            && ($user->isSuperAdmin() || $user->store_id === $opname->store_id);
     }
 }

@@ -43,7 +43,8 @@ class StockOpnameController extends Controller implements HasMiddleware
 
     public function data(): JsonResponse
     {
-        $query = StockOpname::with('user')->withCount('details');
+        $query = StockOpname::with(['user', 'store'])->withCount('details')
+            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->where('store_id', auth()->user()->store_id));
 
         return DataTables::of($query)
             ->addIndexColumn()

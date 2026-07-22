@@ -21,6 +21,12 @@ class RedeemHistoryExport implements FromCollection, WithHeadings, WithMapping, 
     {
         $query = RedeemTransactionDetail::with(['redeemTransaction.user']);
 
+        if (! auth()->user()?->isSuperAdmin()) {
+            $query->whereHas('redeemTransaction', fn ($q) => $q->where('store_id', auth()->user()?->store_id));
+        } elseif (! empty($this->filters['store_id'])) {
+            $query->whereHas('redeemTransaction', fn ($q) => $q->where('store_id', $this->filters['store_id']));
+        }
+
         if (! empty($this->filters['date_from'])) {
             $query->whereHas('redeemTransaction', fn ($q) => $q->whereDate('redeemed_at', '>=', $this->filters['date_from']));
         }

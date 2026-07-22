@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class StoreItemRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->user() && ! $this->user()->isSuperAdmin()) {
+            $this->merge(['store_id' => $this->user()->store_id ?? \App\Models\Store::where('code', 'S040')->value('id')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->canWrite() ?? false;
@@ -15,8 +22,11 @@ class StoreItemRequest extends FormRequest
 
     public function rules(): array
     {
+        $storeId = $this->user()->isSuperAdmin() ? $this->input('store_id') : $this->user()->store_id;
+
         return [
-            'barcode' => ['required', 'string', 'max:50', 'unique:items,barcode'],
+            'store_id' => ['required', Rule::exists('stores', 'id')->where('is_active', true)],
+            'barcode' => ['required', 'string', 'max:50', Rule::unique('items', 'barcode')->where('store_id', $storeId)],
             'name' => ['required', 'string', 'max:150'],
             'allocation' => ['required', Rule::in(Item::ALLOCATIONS)],
             'category' => ['required', Rule::in(Item::CATEGORIES)],

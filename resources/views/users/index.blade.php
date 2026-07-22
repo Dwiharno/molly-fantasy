@@ -17,7 +17,7 @@
         <table id="tableUsers" class="table table-hover align-middle w-100">
             <thead>
                 <tr>
-                    <th>#</th><th>Nama</th><th>Email</th><th>Role</th>
+                    <th>#</th><th>Nama Staff</th><th>Email</th><th>Role</th><th>Master Outlet</th>
                     <th class="text-center">Status</th><th>Login Terakhir</th><th class="text-center">Aksi</th>
                 </tr>
             </thead>
@@ -63,6 +63,7 @@ $(function () {
             { data: 'name' },
             { data: 'email' },
             { data: 'role_label' },
+            { data: 'store_label' },
             { data: 'status_badge', orderable: false, className: 'text-center' },
             { data: 'last_login' },
             { data: 'actions', orderable: false, searchable: false, className: 'text-center' },

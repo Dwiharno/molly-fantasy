@@ -21,6 +21,12 @@ class ItemsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
     {
         $query = Item::query();
 
+        if (! auth()->user()?->isSuperAdmin()) {
+            $query->where('store_id', auth()->user()?->store_id);
+        } elseif (! empty($this->filters['store_id'])) {
+            $query->where('store_id', $this->filters['store_id']);
+        }
+
         if ($this->term) {
             $query->where(function ($q) {
                 $q->where('name', 'like', "%{$this->term}%")

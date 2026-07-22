@@ -18,7 +18,7 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                    <label class="form-label">Nama Staff <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                            value="{{ old('name', $user->name) }}" required autofocus>
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -52,8 +52,16 @@
                     @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">No. Telepon</label>
-                    <input type="text" name="phone" class="form-control" value="{{ old('phone', $user->phone) }}">
+                    <label class="form-label">Master Outlet <span class="text-danger">*</span></label>
+                    <select name="store_id" class="form-select select2 @error('store_id') is-invalid @enderror" required>
+                        <option value="">- Pilih Outlet -</option>
+                        @foreach($stores as $store)
+                            <option value="{{ $store->id }}" {{ (string) old('store_id', $user->store_id) === (string) $store->id ? 'selected' : '' }}>
+                                {{ $store->code }} - {{ $store->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('store_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-12">
@@ -68,7 +76,7 @@
             <div class="alert alert-info mt-3 small">
                 <strong>Hak akses per role:</strong><br>
                 Super Admin — seluruh modul termasuk Setting sistem.<br>
-                Admin — seluruh modul operasional, tanpa Setting sistem, tidak bisa mengubah akun Super Admin.<br>
+                Store Manager/Leader — mengelola user dan operasional hanya untuk outletnya.<br>
                 Staff — input transaksi (Redeem, Stock Opname), tidak bisa menghapus master data.<br>
                 Viewer — hanya bisa melihat data (read-only) di seluruh modul.
             </div>
