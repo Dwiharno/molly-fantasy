@@ -16,9 +16,13 @@ class DashboardController extends Controller
     {
         $today = now()->toDateString();
         $storeId = auth()->user()->isSuperAdmin() ? null : auth()->user()->store_id;
+        $inventoryStoreId = auth()->user()->canViewAllStoreStock() ? null : auth()->user()->store_id;
 
         $stats = [
-            'total_item' => Item::when($storeId, fn ($q) => $q->where('store_id', $storeId))->count(),
+            'total_item' => Item::when($inventoryStoreId, fn ($q) => $q->where('store_id', $inventoryStoreId))->count(),
+            'total_inventory_value' => (float) Item::when($inventoryStoreId, fn ($q) => $q->where('store_id', $inventoryStoreId))
+                ->selectRaw('COALESCE(SUM(selling_price * stock), 0) AS value')->value('value'),
+            'total_redeem_value' => (float) RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->sum('total_value'),
             'redeem_today' => RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('redeemed_at', $today)->count(),
             'opname_today' => StockOpname::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('opname_date', $today)->count(),
             'ticket_redeemed_today' => (int) RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->whereDate('redeemed_at', $today)->sum('total_ticket_used'),

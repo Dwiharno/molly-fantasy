@@ -9,6 +9,27 @@
 </div>
 
 <div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="fa-solid fa-boxes-stacked"></i></div>
+            <div>
+                <div class="stat-value">Rp {{ number_format($stats['total_inventory_value'], 0, ',', '.') }}</div>
+                <div class="stat-label">Total Value Inventory (Harga × Stok)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger"><i class="fa-solid fa-gift"></i></div>
+            <div>
+                <div class="stat-value">Rp {{ number_format($stats['total_redeem_value'], 0, ',', '.') }}</div>
+                <div class="stat-label">Total Value Redeem (Harga × Qty)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="stat-card">
             <div class="stat-icon bg-primary-subtle text-primary"><i class="fa-solid fa-box"></i></div>
