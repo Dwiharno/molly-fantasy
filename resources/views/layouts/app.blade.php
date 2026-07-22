@@ -59,6 +59,11 @@
             <nav class="topbar d-flex align-items-center justify-content-between">
                 <button id="sidebarToggle" class="btn btn-sm btn-icon" aria-label="Buka atau tutup menu" aria-controls="sidebar" aria-expanded="true"><i class="fa-solid fa-bars"></i></button>
                 <div class="d-flex align-items-center gap-3">
+                    <a href="{{ route('redeem.offline') }}" id="networkModeToggle" class="btn btn-sm btn-outline-success position-relative" title="Buka Redeem Offline">
+                        <i class="fa-solid fa-wifi me-1" id="networkModeIcon"></i>
+                        <span id="networkModeText">Online</span>
+                        <span id="offlineQueueBadge" class="badge rounded-pill text-bg-danger position-absolute top-0 start-100 translate-middle d-none">0</span>
+                    </a>
                     <button id="darkModeToggle" class="btn btn-sm btn-icon"><i class="fa-solid fa-moon"></i></button>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-icon position-relative" data-bs-toggle="dropdown" id="notifBell">
@@ -111,6 +116,42 @@
     <script src="{{ asset('vendor/chart.js/chart.umd.min.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     <script>
+        window.MollyOffline = {
+            queueKey: 'molly_redeem_offline_queue_v1',
+            modeKey: 'molly_redeem_force_offline_v1',
+            queue() {
+                try { return JSON.parse(localStorage.getItem(this.queueKey) || '[]'); }
+                catch (_) { return []; }
+            },
+            forced() { return localStorage.getItem(this.modeKey) === '1'; },
+            isOffline() { return this.forced() || !navigator.onLine; },
+            render() {
+                const offline = this.isOffline();
+                const count = this.queue().length;
+                const button = document.getElementById('networkModeToggle');
+                const icon = document.getElementById('networkModeIcon');
+                const label = document.getElementById('networkModeText');
+                const badge = document.getElementById('offlineQueueBadge');
+                if (!button || !icon || !label || !badge) return;
+                button.className = 'btn btn-sm position-relative ' + (offline ? 'btn-warning' : 'btn-outline-success');
+                icon.className = 'fa-solid ' + (offline ? 'fa-cloud-arrow-up' : 'fa-wifi') + ' me-1';
+                label.textContent = offline ? 'Offline' : 'Online';
+                badge.textContent = count;
+                badge.classList.toggle('d-none', count === 0);
+                button.title = count ? `${count} transaksi menunggu sinkronisasi` : 'Buka Redeem Offline';
+            }
+        };
+        window.addEventListener('online', () => {
+            window.MollyOffline.render();
+            window.dispatchEvent(new CustomEvent('molly:sync-offline'));
+        });
+        window.addEventListener('offline', () => window.MollyOffline.render());
+        window.addEventListener('storage', () => window.MollyOffline.render());
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) window.MollyOffline.render();
+        });
+        window.MollyOffline.render();
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('{{ asset('sw.js') }}'));
         }

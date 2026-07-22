@@ -5,7 +5,14 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h4 class="mb-1">Redeem Offline</h4><div class="text-muted small">Transaksi disimpan di perangkat dan otomatis disinkronkan saat internet kembali.</div></div>
-    <div><span id="networkBadge" class="badge"></span> <a href="{{ route('redeem.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a></div>
+    <div class="d-flex align-items-center gap-2">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="forceOfflineToggle">
+            <label class="form-check-label" for="forceOfflineToggle">Mode Offline</label>
+        </div>
+        <span id="networkBadge" class="badge"></span>
+        <a href="{{ route('redeem.index') }}" class="btn btn-outline-secondary btn-sm">Kembali</a>
+    </div>
 </div>
 
 <div class="row g-3">
@@ -28,24 +35,32 @@
 @push('scripts')
 <script>
 $(function () {
-    const queueKey = 'molly_redeem_offline_queue_v1';
+    const queueKey = window.MollyOffline.queueKey;
+    const modeKey = window.MollyOffline.modeKey;
     const token = document.querySelector('meta[name="csrf-token"]').content;
-    const readQueue = () => JSON.parse(localStorage.getItem(queueKey) || '[]');
-    const writeQueue = value => localStorage.setItem(queueKey, JSON.stringify(value));
+    let syncing = false;
+    const readQueue = () => window.MollyOffline.queue();
+    const writeQueue = value => {
+        localStorage.setItem(queueKey, JSON.stringify(value));
+        window.MollyOffline.render();
+    };
 
     function addItem(barcode = '', qty = 1) {
         $('#offlineItems').append('<div class="row g-2 mb-2 offline-item"><div class="col-8"><input class="form-control item-barcode" placeholder="Scan / masukkan barcode hadiah" value="' + barcode + '"></div><div class="col-2"><input class="form-control item-qty" type="number" min="1" value="' + qty + '"></div><div class="col-2"><button type="button" class="btn btn-outline-danger w-100 remove-offline-item"><i class="fa-solid fa-trash"></i></button></div></div>');
     }
 
     function render() {
-        const online = navigator.onLine;
-        $('#networkBadge').attr('class', 'badge ' + (online ? 'text-bg-success' : 'text-bg-warning')).text(online ? 'Online' : 'Offline');
+        const forced = window.MollyOffline.forced();
+        const online = navigator.onLine && !forced;
+        $('#forceOfflineToggle').prop('checked', forced);
+        $('#networkBadge').attr('class', 'badge ' + (online ? 'text-bg-success' : 'text-bg-warning')).text(online ? 'Online · sinkron aktif' : (forced && navigator.onLine ? 'Offline manual' : 'Tidak ada internet'));
         const queue = readQueue();
         $('#offlineQueue').html(queue.length ? queue.map(x => '<div class="border-bottom py-2"><strong>' + x.redeem_type.toUpperCase() + '</strong> · ' + x.total_tickets.toLocaleString('id-ID') + ' tiket<br><span class="small text-muted">' + x.items.length + ' jenis hadiah · ' + new Date(x.created_at).toLocaleString('id-ID') + '</span></div>').join('') : '<div class="text-muted text-center py-3">Tidak ada antrean.</div>');
     }
 
     async function syncQueue() {
-        if (!navigator.onLine) return render();
+        if (syncing || !navigator.onLine || window.MollyOffline.forced()) return render();
+        syncing = true;
         const queue = readQueue();
         const remaining = [];
         for (const transaction of queue) {
@@ -58,10 +73,15 @@ $(function () {
                 }
             } catch (_) { remaining.push(transaction); }
         }
-        writeQueue(remaining); render();
+        writeQueue(remaining); render(); syncing = false;
         if (queue.length && !remaining.length) mfToast('success', 'Semua transaksi offline berhasil disinkronkan.');
     }
 
+    $('#forceOfflineToggle').on('change', function () {
+        localStorage.setItem(modeKey, this.checked ? '1' : '0');
+        render(); window.MollyOffline.render();
+        if (!this.checked) syncQueue();
+    });
     $('#offlineType').on('change', function () { $('.member-field').toggleClass('d-none', this.value !== 'member'); });
     $('#addOfflineItem').on('click', () => addItem());
     $(document).on('click', '.remove-offline-item', function () { $(this).closest('.offline-item').remove(); });
@@ -72,10 +92,14 @@ $(function () {
         const payload = {reference: crypto.randomUUID(), redeem_type: $('#offlineType').val(), member_phone: $('#offlinePhone').val().trim() || null, total_tickets: totalTickets, items, created_at: new Date().toISOString()};
         const queue = readQueue(); queue.push(payload); writeQueue(queue);
         $('#offlineTickets,#offlinePhone').val(''); $('#offlineItems').empty(); addItem(); render(); syncQueue();
-        mfToast('success', navigator.onLine ? 'Transaksi disimpan dan sedang disinkronkan.' : 'Transaksi aman tersimpan di perangkat.');
+        mfToast('success', navigator.onLine && !window.MollyOffline.forced() ? 'Transaksi disimpan dan sedang disinkronkan.' : 'Transaksi aman tersimpan di perangkat.');
     });
 
-    window.addEventListener('online', syncQueue); window.addEventListener('offline', render);
+    window.addEventListener('online', syncQueue);
+    window.addEventListener('offline', render);
+    window.addEventListener('molly:sync-offline', syncQueue);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) syncQueue(); });
+    setInterval(syncQueue, 30000);
     addItem(); render(); syncQueue();
 });
 </script>

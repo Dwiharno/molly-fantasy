@@ -1,5 +1,13 @@
-const CACHE = 'molly-fantasy-v1';
-const SHELL = ['/redeem/offline', '/css/app.css', '/js/app.js'];
+const CACHE = 'molly-fantasy-v2';
+const SHELL = [
+  '/redeem/offline',
+  '/css/app.css',
+  '/js/app.js',
+  '/vendor/bootstrap/css/bootstrap.min.css',
+  '/vendor/bootstrap/js/bootstrap.bundle.min.js',
+  '/vendor/jquery/jquery.min.js',
+  '/vendor/fontawesome-free/css/all.min.css'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).catch(() => null));
