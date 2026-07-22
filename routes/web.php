@@ -47,7 +47,7 @@ Route::post('logout', [LoginController::class, 'destroy'])
 | middleware role & can_write agar Viewer hanya bisa membaca.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:super_admin,admin,staff,viewer'])->group(function () {
+Route::middleware(['auth', 'role:super_admin,area_manager,admin,staff,viewer'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index']);
 

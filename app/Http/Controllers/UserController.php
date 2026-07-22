@@ -126,7 +126,7 @@ class UserController extends Controller implements HasMiddleware
     {
         $allowed = [User::ROLE_ADMIN, User::ROLE_STAFF];
         if (auth()->user()->isSuperAdmin()) {
-            array_unshift($allowed, User::ROLE_SUPER_ADMIN);
+            array_unshift($allowed, User::ROLE_SUPER_ADMIN, User::ROLE_AREA_MANAGER);
         }
         $roles = array_intersect_key(User::ROLES, array_flip($allowed));
 

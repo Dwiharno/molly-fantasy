@@ -53,7 +53,7 @@ class ItemController extends Controller implements HasMiddleware
     {
         $query = Item::query()->with('store');
 
-        if (! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->canViewAllStoreStock()) {
             $query->where('store_id', $request->user()->store_id);
         } elseif ($request->filled('store_id')) {
             $query->where('store_id', $request->integer('store_id'));
@@ -154,7 +154,13 @@ class ItemController extends Controller implements HasMiddleware
 
     public function exportPdf(Request $request)
     {
-        $query = Item::query();
+        $query = Item::query()->with('store');
+
+        if (! $request->user()->canViewAllStoreStock()) {
+            $query->where('store_id', $request->user()->store_id);
+        } elseif ($request->filled('store_id')) {
+            $query->where('store_id', $request->integer('store_id'));
+        }
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%'.$request->search.'%');
@@ -232,7 +238,7 @@ class ItemController extends Controller implements HasMiddleware
     protected function availableStores()
     {
         return Store::active()
-            ->when(! auth()->user()->isSuperAdmin(), fn ($q) => $q->whereKey(auth()->user()->store_id))
+            ->when(! auth()->user()->canViewAllStoreStock(), fn ($q) => $q->whereKey(auth()->user()->store_id))
             ->orderBy('code')->get();
     }
 }

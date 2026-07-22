@@ -14,7 +14,7 @@ class ItemPolicy
 
     public function view(User $user, Item $item): bool
     {
-        return $user->isSuperAdmin() || $user->store_id === $item->store_id;
+        return $user->canViewAllStoreStock() || $user->store_id === $item->store_id;
     }
 
     public function create(User $user): bool

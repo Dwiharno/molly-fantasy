@@ -32,7 +32,7 @@
 <div class="card">
     <div class="card-body">
         <div class="row g-2 mb-3">
-            @if(auth()->user()->isSuperAdmin())
+            @if(auth()->user()->canViewAllStoreStock())
             <div class="col-md-3">
                 <select id="filterStore" class="form-select form-select-sm">
                     <option value="">Semua Outlet</option>

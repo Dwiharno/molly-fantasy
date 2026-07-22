@@ -162,3 +162,9 @@ membutuhkan background worker terpisah.
 - Fitur backup/restore SQL bawaan aplikasi saat ini khusus MySQL. Untuk database
   Neon, lakukan export/restore melalui Neon atau `pg_dump` dari komputer admin.
 - Lakukan backup berkala sebelum aplikasi dipakai untuk transaksi nyata.
+
+## Migrasi manual InfinityFree
+
+Sebelum men-deploy role Area Manager, import file
+`deployment/infinityfree/migrations/2026_07_22_add_area_manager_role.sql`
+melalui phpMyAdmin database produksi.

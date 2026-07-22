@@ -14,6 +14,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     use HasFactory, Notifiable, SoftDeletes, CanResetPassword;
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
+    public const ROLE_AREA_MANAGER = 'area_manager';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STORE_MANAGER = self::ROLE_ADMIN;
     public const ROLE_STAFF = 'staff';
@@ -21,6 +22,7 @@ class User extends Authenticatable implements CanResetPasswordContract
 
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
+        self::ROLE_AREA_MANAGER => 'Area Manager',
         self::ROLE_ADMIN => 'Store Manager/Leader',
         self::ROLE_STAFF => 'Staff',
         self::ROLE_VIEWER => 'Viewer',
@@ -51,6 +53,11 @@ class User extends Authenticatable implements CanResetPasswordContract
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    public function canViewAllStoreStock(): bool
+    {
+        return $this->hasRole([self::ROLE_SUPER_ADMIN, self::ROLE_AREA_MANAGER]);
     }
 
     public function canManageUsers(): bool

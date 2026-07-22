@@ -25,6 +25,7 @@ class StoreUserRequest extends FormRequest
         $allowedRoles = [User::ROLE_ADMIN, User::ROLE_STAFF];
         if ($this->user()->isSuperAdmin()) {
             $allowedRoles[] = User::ROLE_SUPER_ADMIN;
+            $allowedRoles[] = User::ROLE_AREA_MANAGER;
         }
 
         return [
