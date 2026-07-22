@@ -106,7 +106,7 @@ jobs:
           set net:max-retries 3
           set net:reconnect-interval-base 5
           open -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER"
-          mirror --reverse --only-newer --verbose --parallel=2 \
+          mirror --reverse --only-newer --no-perms --verbose --parallel=2 \
             --exclude-glob '.git*' \
             --exclude-glob 'node_modules/' \
             --exclude-glob '_app/vendor/' \
