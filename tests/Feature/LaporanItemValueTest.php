@@ -56,13 +56,41 @@ class LaporanItemValueTest extends TestCase
             'stock_before' => 7,
             'stock_after' => 4,
         ]);
+        $memberTransaction = RedeemTransaction::create([
+            'store_id' => $store->id,
+            'transaction_code' => 'RD-REPORT-MEMBER',
+            'redeem_type' => 'member',
+            'member_phone' => '081234567890',
+            'user_id' => $staff->id,
+            'total_ticket_scanned' => 10,
+            'total_ticket_used' => 10,
+            'total_value' => 2500,
+            'redeemed_at' => now(),
+        ]);
+        $memberTransaction->details()->create([
+            'item_id' => $item->id,
+            'item_barcode' => $item->barcode,
+            'item_name' => $item->name,
+            'qty' => 1,
+            'ticket_used' => 10,
+            'stock_before' => 5,
+            'stock_after' => 4,
+        ]);
 
         $this->actingAs($staff)->getJson(route('laporan.data', ['type' => 'stock']))
             ->assertOk()
             ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 10000]);
 
-        $this->getJson(route('laporan.data', ['type' => 'redeem']))
+        $this->getJson(route('laporan.data', ['type' => 'redeem_pos']))
             ->assertOk()
-            ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 7500]);
+            ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 7500])
+            ->assertJsonFragment(['transaction_code' => 'RD-REPORT-VALUE'])
+            ->assertJsonMissing(['transaction_code' => 'RD-REPORT-MEMBER']);
+
+        $this->getJson(route('laporan.data', ['type' => 'redeem_member']))
+            ->assertOk()
+            ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 2500])
+            ->assertJsonFragment(['transaction_code' => 'RD-REPORT-MEMBER'])
+            ->assertJsonMissing(['transaction_code' => 'RD-REPORT-VALUE']);
     }
 }

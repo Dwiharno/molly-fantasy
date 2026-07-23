@@ -6,7 +6,8 @@
 <h4 class="mb-4">Laporan</h4>
 
 <ul class="nav nav-tabs mb-3" id="laporanTabs">
-    <li class="nav-item"><button class="nav-link active" data-type="redeem">Redeem</button></li>
+    <li class="nav-item"><button class="nav-link active" data-type="redeem_pos">Redeem POS</button></li>
+    <li class="nav-item"><button class="nav-link" data-type="redeem_member">Redeem Member</button></li>
     <li class="nav-item"><button class="nav-link" data-type="stock">Stock</button></li>
     <li class="nav-item"><button class="nav-link" data-type="barang_masuk">Barang Masuk</button></li>
     <li class="nav-item"><button class="nav-link" data-type="barang_keluar">Barang Keluar</button></li>
@@ -66,7 +67,7 @@ $(function () {
     const moneyColumn = (data, title) => ({ data, title, className: 'text-end', render: value => rupiah(value) });
 
     const columnDefs = {
-        redeem: [
+        redeem_pos: [
             { data: 'DT_RowIndex', title: '#', orderable: false },
             { data: 'tanggal', title: 'Tanggal' },
             { data: 'redeem_transaction.transaction_code', title: 'No. Transaksi' },
@@ -77,6 +78,18 @@ $(function () {
             moneyColumn('unit_price', 'Harga Satuan'),
             moneyColumn('item_value', 'Total Value'),
             { data: 'ticket_used', title: 'Tiket', className: 'text-center' },
+        ],
+        redeem_member: [
+            { data: 'DT_RowIndex', title: '#', orderable: false },
+            { data: 'tanggal', title: 'Tanggal' },
+            { data: 'redeem_transaction.transaction_code', title: 'No. Transaksi' },
+            { data: 'kasir', title: 'Kasir' },
+            { data: 'item_barcode', title: 'Barcode' },
+            { data: 'item_name', title: 'Nama Barang' },
+            { data: 'qty', title: 'Qty', className: 'text-center' },
+            moneyColumn('unit_price', 'Harga Satuan'),
+            moneyColumn('item_value', 'Total Value'),
+            { data: 'ticket_used', title: 'Tiket Member', className: 'text-center' },
         ],
         stock: [
             { data: 'DT_RowIndex', title: '#', orderable: false },
@@ -131,13 +144,13 @@ $(function () {
         ],
     };
 
-    let currentType = 'redeem';
+    let currentType = 'redeem_pos';
     let table = null;
 
     function toggleFilters(type) {
-        $('.filter-date').toggleClass('d-none', !['redeem', 'barang_masuk', 'barang_keluar', 'selisih_stock'].includes(type));
+        $('.filter-date').toggleClass('d-none', !['redeem_pos', 'redeem_member', 'barang_masuk', 'barang_keluar', 'selisih_stock'].includes(type));
         $('.filter-category').toggleClass('d-none', type !== 'stock');
-        $('.filter-cashier').toggleClass('d-none', type !== 'redeem');
+        $('.filter-cashier').toggleClass('d-none', !['redeem_pos', 'redeem_member'].includes(type));
     }
 
     function loadTable(type) {
@@ -197,7 +210,7 @@ $(function () {
         window.location.href = buildExportUrl('{{ route('laporan.export.pdf') }}');
     });
 
-    loadTable('redeem');
+    loadTable('redeem_pos');
 });
 </script>
 @endpush

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\SyncToGoogleSheetsJob;
+use App\Models\Item;
 use App\Models\StockOpname;
 use App\Models\StockOpnameDetail;
 use App\Repositories\ItemRepository;
@@ -31,9 +32,47 @@ class StockOpnameService
             'notes' => $notes,
         ]);
 
+        $this->ensureAllItemsListed($opname);
+
         $this->activityLog->log(Auth::user(), 'create', 'stock_opname', "Memulai sesi stock opname {$opname->code}");
 
         return $opname;
+    }
+
+    public function ensureAllItemsListed(StockOpname $opname): void
+    {
+        $now = now();
+        Item::query()->active()->where('store_id', $opname->store_id)
+            ->orderBy('id')->chunkById(250, function ($items) use ($opname, $now) {
+                StockOpnameDetail::insertOrIgnore($items->map(fn (Item $item) => [
+                    'stock_opname_id' => $opname->id,
+                    'item_id' => $item->id,
+                    'expected_stock' => $item->stock,
+                    'actual_stock' => 0,
+                    'difference' => 0,
+                    'scanned_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->all());
+            });
+    }
+
+    public function setActualStocks(StockOpname $opname, array $actuals): void
+    {
+        $this->ensureEditable($opname);
+
+        DB::transaction(function () use ($opname, $actuals) {
+            $details = $opname->details()->whereIn('item_id', array_keys($actuals))->get();
+
+            foreach ($details as $detail) {
+                $actual = (int) $actuals[$detail->item_id];
+                $detail->update([
+                    'actual_stock' => $actual,
+                    'difference' => $actual - (int) $detail->expected_stock,
+                    'scanned_at' => now(),
+                ]);
+            }
+        });
     }
 
     /**
@@ -100,7 +139,12 @@ class StockOpnameService
     {
         $this->ensureEditable($opname);
 
-        StockOpnameDetail::where('stock_opname_id', $opname->id)->delete();
+        StockOpnameDetail::where('stock_opname_id', $opname->id)->update([
+            'actual_stock' => 0,
+            'difference' => 0,
+            'scanned_at' => null,
+            'updated_at' => now(),
+        ]);
 
         $this->activityLog->log(Auth::user(), 'reset', 'stock_opname', "Reset seluruh scan pada sesi {$opname->code}");
     }
@@ -112,6 +156,12 @@ class StockOpnameService
     public function complete(StockOpname $opname): StockOpname
     {
         $this->ensureEditable($opname);
+
+        if ($opname->details()->whereNull('scanned_at')->exists()) {
+            throw ValidationException::withMessages([
+                'actual_stock' => 'Semua item wajib diisi Actual Stock sebelum sesi diselesaikan.',
+            ]);
+        }
 
         return DB::transaction(function () use ($opname) {
             $details = $opname->details()->with('item')->get();

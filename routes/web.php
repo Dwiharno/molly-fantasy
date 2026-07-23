@@ -151,6 +151,7 @@ Route::middleware(['auth', 'role:super_admin,area_manager,admin,staff,viewer'])-
         Route::post('/start', [StockOpnameController::class, 'start'])->name('start');
         Route::get('/{opname}/scan', [StockOpnameController::class, 'scanPage'])->name('scan');
         Route::post('/{opname}/scan', [StockOpnameController::class, 'scan'])->name('scan.submit');
+        Route::post('/{opname}/actuals', [StockOpnameController::class, 'updateActuals'])->name('actuals');
         Route::post('/{opname}/undo', [StockOpnameController::class, 'undo'])->name('undo');
         Route::post('/{opname}/reset', [StockOpnameController::class, 'reset'])->name('reset');
         Route::post('/{opname}/complete', [StockOpnameController::class, 'complete'])->name('complete');

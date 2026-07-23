@@ -20,6 +20,7 @@ class DashboardController extends Controller
 
         $stats = [
             'total_item' => Item::when($inventoryStoreId, fn ($q) => $q->where('store_id', $inventoryStoreId))->count(),
+            'out_of_stock' => Item::when($inventoryStoreId, fn ($q) => $q->where('store_id', $inventoryStoreId))->where('stock', '<=', 0)->count(),
             'total_inventory_value' => (float) Item::when($inventoryStoreId, fn ($q) => $q->where('store_id', $inventoryStoreId))
                 ->selectRaw('COALESCE(SUM(selling_price * stock), 0) AS value')->value('value'),
             'total_redeem_value' => (float) RedeemTransaction::when($storeId, fn ($q) => $q->where('store_id', $storeId))->sum('total_value'),

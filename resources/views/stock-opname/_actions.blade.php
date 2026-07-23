@@ -1,7 +1,7 @@
 <div class="d-flex gap-1">
     @if($opname->status !== 'completed')
-        <a href="{{ route('stock-opname.scan', $opname) }}" class="btn btn-sm btn-outline-primary" title="Lanjutkan Scan">
-            <i class="fa-solid fa-barcode"></i>
+        <a href="{{ route('stock-opname.scan', $opname) }}" class="btn btn-sm btn-outline-primary" title="Isi Actual Stock">
+            <i class="fa-solid fa-list-check"></i>
         </a>
         @can('delete', $opname)
             <button type="button" class="btn btn-sm btn-outline-danger btn-delete-opname" data-id="{{ $opname->id }}" title="Hapus">

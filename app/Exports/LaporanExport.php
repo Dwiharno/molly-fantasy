@@ -24,7 +24,10 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function collection(): Collection
     {
         return match ($this->type) {
-            'redeem' => $this->applyRedeemFilters(RedeemTransactionDetail::with(['redeemTransaction.user', 'item']))->latest()->get(),
+            'redeem_pos' => $this->applyRedeemFilters(RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])
+                ->whereHas('redeemTransaction', fn ($q) => $q->where('redeem_type', 'pos')))->latest()->get(),
+            'redeem_member' => $this->applyRedeemFilters(RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])
+                ->whereHas('redeemTransaction', fn ($q) => $q->where('redeem_type', 'member')))->latest()->get(),
             'stock' => $this->applyStockFilters(Item::query())->get(),
             'barang_masuk' => $this->movementQuery(['in'])->get(),
             'barang_keluar' => $this->movementQuery(['out', 'redeem'])->get(),
@@ -78,7 +81,7 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function headings(): array
     {
         return match ($this->type) {
-            'redeem' => ['Tanggal', 'No. Transaksi', 'Kasir', 'Barcode', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total Value', 'Tiket'],
+            'redeem_pos', 'redeem_member' => ['Tanggal', 'No. Transaksi', 'Kasir', 'Barcode', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total Value', 'Tiket'],
             'stock' => ['Barcode', 'Nama Item', 'Kategori', 'Stok', 'Harga Satuan', 'Total Value', 'Min. Stok', 'Status'],
             'barang_masuk', 'barang_keluar' => ['Tanggal', 'Barcode', 'Nama Item', 'Qty', 'Harga Satuan', 'Total Value', 'Catatan'],
             'user' => ['Nama', 'Email', 'Role', 'Status', 'Login Terakhir'],
@@ -90,7 +93,7 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function map($row): array
     {
         return match ($this->type) {
-            'redeem' => [
+            'redeem_pos', 'redeem_member' => [
                 $row->redeemTransaction->redeemed_at->format('d/m/Y H:i'),
                 $row->redeemTransaction->transaction_code,
                 $row->redeemTransaction->user->name ?? '-',

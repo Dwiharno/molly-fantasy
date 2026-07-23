@@ -20,7 +20,8 @@
         <thead>
             <tr>
                 @switch($type)
-                    @case('redeem')
+                    @case('redeem_pos')
+                    @case('redeem_member')
                         <th>Tanggal</th><th>No. Transaksi</th><th>Kasir</th><th>Barcode</th><th>Nama Barang</th><th class="text-center">Qty</th><th>Harga Satuan</th><th>Total Value</th><th class="text-center">Tiket</th>
                         @break
                     @case('stock')
@@ -43,7 +44,8 @@
             @forelse($rows as $row)
                 <tr>
                     @switch($type)
-                        @case('redeem')
+                        @case('redeem_pos')
+                        @case('redeem_member')
                             <td>{{ $row->redeemTransaction->redeemed_at->format('d/m/Y H:i') }}</td>
                             <td>{{ $row->redeemTransaction->transaction_code }}</td>
                             <td>{{ $row->redeemTransaction->user->name ?? '-' }}</td>

@@ -516,6 +516,7 @@ class RedeemService
             $transaction->update([
                 'total_ticket_scanned' => $totalTicketScanned,
                 'total_ticket_used' => $transaction->details()->sum('ticket_used'),
+                'redeemed_at' => now(),
             ]);
         }
 

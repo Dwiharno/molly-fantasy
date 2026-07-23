@@ -27,7 +27,8 @@ class LaporanController extends Controller
     public function data(Request $request): JsonResponse
     {
         return match ($request->get('type')) {
-            'redeem' => $this->redeemData($request),
+            'redeem_pos' => $this->redeemData($request, 'pos'),
+            'redeem_member' => $this->redeemData($request, 'member'),
             'stock' => $this->stockData($request),
             'barang_masuk' => $this->movementData($request, ['in']),
             'barang_keluar' => $this->movementData($request, ['out', 'redeem']),
@@ -37,9 +38,10 @@ class LaporanController extends Controller
         };
     }
 
-    protected function redeemData(Request $request): JsonResponse
+    protected function redeemData(Request $request, string $redeemType): JsonResponse
     {
-        $query = RedeemTransactionDetail::with(['redeemTransaction.user', 'item']);
+        $query = RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])
+            ->whereHas('redeemTransaction', fn ($q) => $q->where('redeem_type', $redeemType));
 
         if ($request->filled('date_from')) {
             $query->whereHas('redeemTransaction', fn ($q) => $q->whereDate('redeemed_at', '>=', $request->date_from));
@@ -158,7 +160,10 @@ class LaporanController extends Controller
     public function getReportCollectionForExport(string $type, Request $request)
     {
         return match ($type) {
-            'redeem' => RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])->latest()->get(),
+            'redeem_pos' => RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])
+                ->whereHas('redeemTransaction', fn ($q) => $q->where('redeem_type', 'pos'))->latest()->get(),
+            'redeem_member' => RedeemTransactionDetail::with(['redeemTransaction.user', 'item'])
+                ->whereHas('redeemTransaction', fn ($q) => $q->where('redeem_type', 'member'))->latest()->get(),
             'stock' => Item::all(),
             'barang_masuk' => DB::table('item_stock_movements')->join('items', 'items.id', '=', 'item_stock_movements.item_id')
                 ->select('item_stock_movements.*', 'items.barcode as item_barcode', 'items.name as item_name', 'items.selling_price as unit_price')
@@ -175,7 +180,8 @@ class LaporanController extends Controller
     protected function reportTitle(string $type): string
     {
         return match ($type) {
-            'redeem' => 'Laporan Redeem',
+            'redeem_pos' => 'Laporan Redeem POS',
+            'redeem_member' => 'Laporan Redeem Member',
             'stock' => 'Laporan Stock',
             'barang_masuk' => 'Laporan Barang Masuk',
             'barang_keluar' => 'Laporan Barang Keluar',

@@ -31,7 +31,7 @@ class StockOpnameController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('can:create,App\Models\StockOpname', only: ['start']),
-            new Middleware('can:update,opname', only: ['scanPage', 'scan', 'undo', 'reset', 'complete']),
+            new Middleware('can:update,opname', only: ['scanPage', 'scan', 'updateActuals', 'undo', 'reset', 'complete']),
             new Middleware('can:delete,opname', only: ['destroy']),
         ];
     }
@@ -72,6 +72,7 @@ class StockOpnameController extends Controller implements HasMiddleware
 
     public function scanPage(StockOpname $opname): View
     {
+        $this->stockOpnameService->ensureAllItemsListed($opname);
         $opname->load(['details.item']);
 
         return view('stock-opname.scan', compact('opname'));
@@ -108,6 +109,21 @@ class StockOpnameController extends Controller implements HasMiddleware
         ]);
     }
 
+    public function updateActuals(Request $request, StockOpname $opname): JsonResponse
+    {
+        $validated = $request->validate([
+            'actuals' => ['required', 'array', 'min:1'],
+            'actuals.*' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $this->stockOpnameService->setActualStocks($opname, $validated['actuals']);
+
+        return response()->json([
+            'message' => 'Actual stock berhasil disimpan.',
+            'totals' => $this->totals($opname),
+        ]);
+    }
+
     public function undo(Request $request, StockOpname $opname): JsonResponse
     {
         $request->validate(['item_id' => ['required', 'integer']]);
@@ -121,12 +137,16 @@ class StockOpnameController extends Controller implements HasMiddleware
     {
         $this->stockOpnameService->resetScan($opname);
 
-        return response()->json(['message' => 'Seluruh scan pada sesi ini telah direset.']);
+        return response()->json(['message' => 'Seluruh Actual Stock pada sesi ini telah direset.']);
     }
 
     public function complete(StockOpname $opname): JsonResponse
     {
-        $opname = $this->stockOpnameService->complete($opname);
+        try {
+            $opname = $this->stockOpnameService->complete($opname);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first()], 422);
+        }
 
         return response()->json([
             'message' => "Stock opname {$opname->code} berhasil disimpan dan stok telah disesuaikan.",
@@ -174,7 +194,7 @@ class StockOpnameController extends Controller implements HasMiddleware
         $sums = $opname->details()->selectRaw('SUM(expected_stock) as expected, SUM(actual_stock) as actual')->first();
 
         return [
-            'total_scanned_items' => $opname->details_count,
+            'total_scanned_items' => $opname->details()->whereNotNull('scanned_at')->count(),
             'total_expected' => (int) ($sums->expected ?? 0),
             'total_actual' => (int) ($sums->actual ?? 0),
         ];

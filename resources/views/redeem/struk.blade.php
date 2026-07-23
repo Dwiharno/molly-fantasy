@@ -20,12 +20,18 @@
         .text-end { text-align: right; }
         .item-name { padding-bottom: 0; }
         .item-calculation td { padding-top: 0; }
+        .print-actions { margin: 8px 0; text-align: center; }
+        .print-button { padding: 6px 14px; cursor: pointer; }
         @media print {
             body { width: 58mm; }
+            .print-actions { display: none; }
         }
     </style>
 </head>
-<body onload="window.print()">
+<body>
+    <div class="print-actions">
+        <button type="button" class="print-button" onclick="window.print()">Cetak Struk</button>
+    </div>
     <div class="center bold">{{ $transaction->store?->name ?? \App\Models\Setting::get('outlet_name', config('app.name')) }}</div>
     @if($transaction->store)<div class="center">{{ $transaction->store->code }}</div>@endif
     <div class="center">{{ \App\Models\Setting::get('outlet_address', '') }}</div>

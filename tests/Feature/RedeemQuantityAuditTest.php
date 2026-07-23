@@ -88,6 +88,8 @@ class RedeemQuantityAuditTest extends TestCase
         $service->scanTicket(1, '0005007728001082');
         $service->scanTicket(1, '0005007728001083');
         $service->scanItem(1, $item->barcode, 2);
+        $startedAt = RedeemTransaction::query()->latest()->firstOrFail()->redeemed_at;
+        $this->travel(5)->minutes();
 
         $transaction = $service->finishTransaction(1);
 
@@ -95,6 +97,7 @@ class RedeemQuantityAuditTest extends TestCase
         $this->assertSame(216, $transaction->total_ticket_scanned);
         $this->assertSame(4, $transaction->total_ticket_used);
         $this->assertGreaterThan(0, $transaction->total_ticket_scanned - $transaction->total_ticket_used);
+        $this->assertTrue($transaction->redeemed_at->greaterThan($startedAt));
     }
 
     public function test_update_item_qty_adjusts_stock_ticket_pool_and_uses_valid_movement_types(): void
