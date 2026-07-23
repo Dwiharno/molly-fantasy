@@ -41,6 +41,7 @@ class LaporanItemValueTest extends TestCase
             'store_id' => $store->id,
             'transaction_code' => 'RD-REPORT-VALUE',
             'redeem_type' => 'pos',
+            'pos_number' => 1,
             'user_id' => $staff->id,
             'total_ticket_scanned' => 30,
             'total_ticket_used' => 30,
@@ -84,12 +85,26 @@ class LaporanItemValueTest extends TestCase
         $this->getJson(route('laporan.data', ['type' => 'redeem_pos']))
             ->assertOk()
             ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 7500])
+            ->assertJsonFragment([
+                'point' => 10,
+                'jumlah_tiket' => 30,
+                'sisa_tiket' => 0,
+                'total_redeem' => 30,
+                'pos_label' => 'Pos 1',
+            ])
             ->assertJsonFragment(['transaction_code' => 'RD-REPORT-VALUE'])
             ->assertJsonMissing(['transaction_code' => 'RD-REPORT-MEMBER']);
 
         $this->getJson(route('laporan.data', ['type' => 'redeem_member']))
             ->assertOk()
             ->assertJsonFragment(['unit_price' => 2500, 'item_value' => 2500])
+            ->assertJsonFragment([
+                'point' => 10,
+                'jumlah_tiket' => 10,
+                'sisa_tiket' => 0,
+                'total_redeem' => 10,
+                'pos_label' => 'Member',
+            ])
             ->assertJsonFragment(['transaction_code' => 'RD-REPORT-MEMBER'])
             ->assertJsonMissing(['transaction_code' => 'RD-REPORT-VALUE']);
     }

@@ -81,7 +81,7 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
     public function headings(): array
     {
         return match ($this->type) {
-            'redeem_pos', 'redeem_member' => ['Tanggal', 'No. Transaksi', 'Kasir', 'Barcode', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total Value', 'Tiket'],
+            'redeem_pos', 'redeem_member' => ['Tanggal', 'Barcode', 'Item', 'Qty Item', 'Point', 'Jumlah Tiket', 'Sisa Tiket', 'Total Redeem', 'Pos', 'Value Out'],
             'stock' => ['Barcode', 'Nama Item', 'Kategori', 'Stok', 'Harga Satuan', 'Total Value', 'Min. Stok', 'Status'],
             'barang_masuk', 'barang_keluar' => ['Tanggal', 'Barcode', 'Nama Item', 'Qty', 'Harga Satuan', 'Total Value', 'Catatan'],
             'user' => ['Nama', 'Email', 'Role', 'Status', 'Login Terakhir'],
@@ -95,14 +95,17 @@ class LaporanExport implements FromCollection, WithHeadings, WithMapping, Should
         return match ($this->type) {
             'redeem_pos', 'redeem_member' => [
                 $row->redeemTransaction->redeemed_at->format('d/m/Y H:i'),
-                $row->redeemTransaction->transaction_code,
-                $row->redeemTransaction->user->name ?? '-',
                 $row->item_barcode,
                 $row->item_name,
                 $row->qty,
-                (float) ($row->item?->selling_price ?? 0),
+                (int) $row->qty > 0 ? intdiv((int) $row->ticket_used, (int) $row->qty) : 0,
+                (int) $row->redeemTransaction->total_ticket_scanned,
+                max(0, (int) $row->redeemTransaction->total_ticket_scanned - (int) $row->redeemTransaction->total_ticket_used),
+                (int) $row->redeemTransaction->total_ticket_used,
+                $row->redeemTransaction->redeem_type === 'member'
+                    ? 'Member'
+                    : ($row->redeemTransaction->pos_number ? 'Pos '.$row->redeemTransaction->pos_number : 'POS (data lama/offline)'),
                 (float) ($row->item?->selling_price ?? 0) * (int) $row->qty,
-                $row->ticket_used,
             ],
             'stock' => [
                 $row->barcode, $row->name, $row->category ?? '-',

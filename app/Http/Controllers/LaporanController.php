@@ -57,6 +57,13 @@ class LaporanController extends Controller
             ->addIndexColumn()
             ->addColumn('tanggal', fn ($d) => $d->redeemTransaction->redeemed_at->format('d/m/Y H:i'))
             ->addColumn('kasir', fn ($d) => $d->redeemTransaction->user->name ?? '-')
+            ->addColumn('point', fn ($d) => (int) $d->qty > 0 ? intdiv((int) $d->ticket_used, (int) $d->qty) : 0)
+            ->addColumn('jumlah_tiket', fn ($d) => (int) $d->redeemTransaction->total_ticket_scanned)
+            ->addColumn('sisa_tiket', fn ($d) => max(0, (int) $d->redeemTransaction->total_ticket_scanned - (int) $d->redeemTransaction->total_ticket_used))
+            ->addColumn('total_redeem', fn ($d) => (int) $d->redeemTransaction->total_ticket_used)
+            ->addColumn('pos_label', fn ($d) => $d->redeemTransaction->redeem_type === 'member'
+                ? 'Member'
+                : ($d->redeemTransaction->pos_number ? 'Pos '.$d->redeemTransaction->pos_number : 'POS (data lama/offline)'))
             ->addColumn('unit_price', fn ($d) => (float) ($d->item?->selling_price ?? 0))
             ->addColumn('item_value', fn ($d) => (float) ($d->item?->selling_price ?? 0) * (int) $d->qty)
             ->make(true);

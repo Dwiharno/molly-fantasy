@@ -22,7 +22,7 @@
                 @switch($type)
                     @case('redeem_pos')
                     @case('redeem_member')
-                        <th>Tanggal</th><th>No. Transaksi</th><th>Kasir</th><th>Barcode</th><th>Nama Barang</th><th class="text-center">Qty</th><th>Harga Satuan</th><th>Total Value</th><th class="text-center">Tiket</th>
+                        <th>Tanggal</th><th>Barcode</th><th>Item</th><th class="text-center">Qty Item</th><th class="text-center">Point</th><th class="text-center">Jumlah Tiket</th><th class="text-center">Sisa Tiket</th><th class="text-center">Total Redeem</th><th>Pos</th><th>Value Out</th>
                         @break
                     @case('stock')
                         <th>Barcode</th><th>Nama Item</th><th>Kategori</th><th class="text-center">Stok</th><th>Harga Satuan</th><th>Total Value</th><th class="text-center">Min. Stok</th><th class="text-center">Status</th>
@@ -47,14 +47,15 @@
                         @case('redeem_pos')
                         @case('redeem_member')
                             <td>{{ $row->redeemTransaction->redeemed_at->format('d/m/Y H:i') }}</td>
-                            <td>{{ $row->redeemTransaction->transaction_code }}</td>
-                            <td>{{ $row->redeemTransaction->user->name ?? '-' }}</td>
                             <td>{{ $row->item_barcode }}</td>
                             <td>{{ $row->item_name }}</td>
                             <td class="text-center">{{ $row->qty }}</td>
-                            <td>Rp {{ number_format($row->item?->selling_price ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-center">{{ $row->qty > 0 ? intdiv($row->ticket_used, $row->qty) : 0 }}</td>
+                            <td class="text-center">{{ $row->redeemTransaction->total_ticket_scanned }}</td>
+                            <td class="text-center">{{ max(0, $row->redeemTransaction->total_ticket_scanned - $row->redeemTransaction->total_ticket_used) }}</td>
+                            <td class="text-center">{{ $row->redeemTransaction->total_ticket_used }}</td>
+                            <td>{{ $row->redeemTransaction->redeem_type === 'member' ? 'Member' : ($row->redeemTransaction->pos_number ? 'Pos '.$row->redeemTransaction->pos_number : 'POS (data lama/offline)') }}</td>
                             <td>Rp {{ number_format(($row->item?->selling_price ?? 0) * $row->qty, 0, ',', '.') }}</td>
-                            <td class="text-center">{{ $row->ticket_used }}</td>
                             @break
                         @case('stock')
                             <td>{{ $row->barcode }}</td>

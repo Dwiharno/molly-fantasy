@@ -96,6 +96,7 @@ class RedeemQuantityAuditTest extends TestCase
         $this->assertNotNull($transaction);
         $this->assertSame(216, $transaction->total_ticket_scanned);
         $this->assertSame(4, $transaction->total_ticket_used);
+        $this->assertSame(1, $transaction->pos_number);
         $this->assertGreaterThan(0, $transaction->total_ticket_scanned - $transaction->total_ticket_used);
         $this->assertTrue($transaction->redeemed_at->greaterThan($startedAt));
     }
